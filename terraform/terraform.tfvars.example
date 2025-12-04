@@ -1,0 +1,39 @@
+# Azure Photo Sync - Terraform Variables Example
+# Copy this file to terraform.tfvars and fill in your values
+#
+# NOTE: Configuration keys use colons (:) in this file for readability.
+# Terraform will automatically convert them to double underscores (__)
+# for Azure App Settings, which .NET will read correctly.
+
+resource_group_name           = "PhotoSyncRG"
+function_app_name_prefix      = "photosync"
+storage_account_name_prefix   = "photosync"
+location                      = "westeurope"
+
+# OneDrive 1 Configuration
+# These will be renamed to OneDriveSource:* in Function App 1
+onedrive1_config = {
+  "OneDrive1:ClientId"     = "your-client-id-1"
+  "OneDrive1:TenantId"     = "your-tenant-id-1"
+  "OneDrive1:ClientSecret" = "your-client-secret-1"
+  "OneDrive1:SourceFolder" = "/Photos"
+}
+
+# OneDrive 2 Configuration
+# These will be renamed to OneDriveSource:* in Function App 2
+onedrive2_config = {
+  "OneDrive2:ClientId"     = "your-client-id-2"
+  "OneDrive2:TenantId"     = "your-tenant-id-2"
+  "OneDrive2:ClientSecret" = "your-client-secret-2"
+  "OneDrive2:SourceFolder" = "/Pictures"
+}
+
+# OneDrive Destination Configuration
+# Used by both Function Apps
+onedrive_destination_config = {
+  "OneDriveDestination:ClientId"          = "your-destination-client-id"
+  "OneDriveDestination:TenantId"          = "your-destination-tenant-id"
+  "OneDriveDestination:ClientSecret"      = "your-destination-client-secret"
+  "OneDriveDestination:DestinationFolder" = "/Synced Photos"
+}
+

@@ -1,0 +1,114 @@
+variable "resource_group_name" {
+  description = "Name of the Azure Resource Group"
+  type        = string
+  default     = "photosync-rg"
+}
+
+variable "function_app_name_prefix" {
+  description = "Prefix for Azure Function App names (will be suffixed with -source1, -source2, etc.)"
+  type        = string
+  default     = "photosync"
+}
+
+variable "location" {
+  description = "Azure region for resources"
+  type        = string
+  default     = "westeurope"
+}
+
+variable "storage_account_name_prefix" {
+  description = "Prefix for storage account names (will be suffixed with src1, src2, etc.)"
+  type        = string
+  default     = "photosync"
+
+  validation {
+    condition     = length(var.storage_account_name_prefix) >= 3 && length(var.storage_account_name_prefix) <= 20 && can(regex("^[a-z0-9]+$", var.storage_account_name_prefix))
+    error_message = "Storage account name prefix must be lowercase alphanumeric, between 3 and 20 characters (leaves room for suffix)."
+  }
+}
+
+# OneDrive 1 Configuration
+variable "onedrive1_config" {
+  description = "OneDrive 1 configuration settings"
+  type        = map(string)
+  default     = {}
+  sensitive   = true
+}
+
+# OneDrive 2 Configuration
+variable "onedrive2_config" {
+  description = "OneDrive 2 configuration settings"
+  type        = map(string)
+  default     = {}
+  sensitive   = true
+}
+
+# OneDrive Destination Configuration
+variable "onedrive_destination_config" {
+  description = "OneDrive destination configuration settings"
+  type        = map(string)
+  default     = {}
+  sensitive   = true
+}
+
+# Key Vault Configuration
+variable "enable_keyvault" {
+  description = "Enable Azure Key Vault for storing secrets and refresh tokens"
+  type        = bool
+  default     = false
+}
+
+variable "key_vault_name" {
+  description = "Name of the Azure Key Vault (must be globally unique, 3-24 chars)"
+  type        = string
+  default     = "photosync-kv"
+
+  validation {
+    condition     = length(var.key_vault_name) >= 3 && length(var.key_vault_name) <= 24 && can(regex("^[a-zA-Z][a-zA-Z0-9-]*$", var.key_vault_name))
+    error_message = "Key Vault name must be 3-24 characters, start with a letter, and contain only letters, numbers, and hyphens."
+  }
+}
+
+# Refresh Tokens (for personal Microsoft accounts)
+variable "source1_refresh_token" {
+  description = "OAuth refresh token for source 1 OneDrive account (personal account)"
+  type        = string
+  sensitive   = true
+  default     = null
+}
+
+variable "source2_refresh_token" {
+  description = "OAuth refresh token for source 2 OneDrive account (personal account)"
+  type        = string
+  sensitive   = true
+  default     = null
+}
+
+variable "destination_refresh_token" {
+  description = "OAuth refresh token for destination OneDrive account (personal account)"
+  type        = string
+  sensitive   = true
+  default     = null
+}
+
+# Client Secrets (optional, for storage in Key Vault)
+variable "source1_client_secret_for_vault" {
+  description = "Client secret for source 1 to store in Key Vault (optional)"
+  type        = string
+  sensitive   = true
+  default     = null
+}
+
+variable "source2_client_secret_for_vault" {
+  description = "Client secret for source 2 to store in Key Vault (optional)"
+  type        = string
+  sensitive   = true
+  default     = null
+}
+
+variable "destination_client_secret_for_vault" {
+  description = "Client secret for destination to store in Key Vault (optional)"
+  type        = string
+  sensitive   = true
+  default     = null
+}

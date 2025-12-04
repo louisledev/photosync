@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet add:*)",
+      "Bash(dotnet add package:*)",
+      "Bash(dotnet build:*)",
+      "Bash(/usr/local/share/dotnet/dotnet build)",
+      "Bash(/usr/local/share/dotnet/dotnet sln add:*)",
+      "Bash(/usr/local/share/dotnet/dotnet test:*)",
+      "Bash(/usr/local/share/dotnet/dotnet remove package Microsoft.Graph)",
+      "Bash(/usr/local/share/dotnet/dotnet add package:*)",
+      "Bash(/usr/local/share/dotnet/dotnet add package Microsoft.Graph.Core --version 2.0.15)",
+      "Bash(/usr/local/share/dotnet/dotnet remove package Microsoft.Graph.Core)",
+      "Bash(/usr/local/share/dotnet/dotnet clean)",
+      "Bash(cat:*)",
+      "Bash(dotnet new:*)",
+      "Bash(dotnet test:*)",
+      "Bash(/usr/local/share/dotnet/dotnet build PhotoSync.sln)",
+      "Bash(/usr/local/share/dotnet/dotnet clean PhotoSync.sln)",
+      "Bash(/usr/local/share/dotnet/dotnet build /Users/louis/src/perso/photosync/src/PhotoSync.csproj)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

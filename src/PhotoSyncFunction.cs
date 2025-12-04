@@ -10,7 +10,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
 using Microsoft.Graph.Drives.Item.Items.Item.CreateUploadSession;
-using Azure.Identity;
 using MetadataExtractor;
 using MetadataExtractor.Formats.Exif;
 

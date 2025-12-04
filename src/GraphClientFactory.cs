@@ -7,8 +7,8 @@ using System.Net.Http;
 namespace PhotoSync
 {
     /// <summary>
-    /// Factory for creating Microsoft Graph clients with support for both
-    /// client credentials (organizational accounts) and refresh tokens (personal accounts)
+    /// Factory for creating Microsoft Graph clients using refresh token authentication
+    /// for personal Microsoft accounts
     /// </summary>
     public class GraphClientFactory : IGraphClientFactory
     {
@@ -32,22 +32,10 @@ namespace PhotoSync
 
         public GraphServiceClient CreateClient(string clientId, string tenantId, string clientSecret)
         {
-            // Check if we're using refresh token mode
-            var useRefreshToken = bool.TryParse(_configuration["UseRefreshTokenAuth"], out var useRefresh) && useRefresh;
-
-            if (useRefreshToken)
-            {
-                // Use refresh token authentication for personal Microsoft accounts
-                var refreshToken = GetRefreshToken(clientSecret); // clientSecret parameter is used as refresh token key name
-                var authProvider = new RefreshTokenAuthenticationProvider(clientId, GetClientSecret(clientId), refreshToken, _httpClient);
-                return new GraphServiceClient(authProvider);
-            }
-            else
-            {
-                // Use client credentials flow for organizational accounts
-                var credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
-                return new GraphServiceClient(credential);
-            }
+            // Always use refresh token authentication for personal Microsoft accounts
+            var refreshToken = GetRefreshToken(clientSecret); // clientSecret parameter is used as refresh token key name
+            var authProvider = new RefreshTokenAuthenticationProvider(clientId, GetClientSecret(clientId), refreshToken, _httpClient);
+            return new GraphServiceClient(authProvider);
         }
 
         private string GetRefreshToken(string keyName)

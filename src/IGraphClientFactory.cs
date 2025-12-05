@@ -12,8 +12,8 @@ namespace PhotoSync
         /// </summary>
         /// <param name="clientId">Azure AD application client ID</param>
         /// <param name="tenantId">Azure AD tenant ID</param>
-        /// <param name="clientSecret">Azure AD application client secret</param>
+        /// <param name="refreshTokenSecretName">Name of the Key Vault secret containing the refresh token</param>
         /// <returns>Configured GraphServiceClient</returns>
-        GraphServiceClient CreateClient(string clientId, string tenantId, string clientSecret);
+        GraphServiceClient CreateClient(string clientId, string tenantId, string refreshTokenSecretName);
     }
 }

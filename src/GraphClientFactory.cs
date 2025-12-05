@@ -30,10 +30,10 @@ namespace PhotoSync
             }
         }
 
-        public GraphServiceClient CreateClient(string clientId, string tenantId, string clientSecret)
+        public GraphServiceClient CreateClient(string clientId, string tenantId, string refreshTokenSecretName)
         {
             // Always use refresh token authentication for personal Microsoft accounts
-            var refreshToken = GetRefreshToken(clientSecret); // clientSecret parameter is used as refresh token key name
+            var refreshToken = GetRefreshToken(refreshTokenSecretName);
             var authProvider = new RefreshTokenAuthenticationProvider(clientId, GetClientSecret(clientId), refreshToken, _httpClient);
             return new GraphServiceClient(authProvider);
         }
@@ -58,29 +58,22 @@ namespace PhotoSync
 
         private string GetClientSecret(string clientId)
         {
-            // Try to get client secret from Key Vault first, fall back to configuration
+            // For personal accounts, all sources use the same client ID and secret
+            // Try source1-client-secret first (they're all the same)
             if (_secretClient != null)
             {
                 try
                 {
-                    var secretName = $"{clientId}-client-secret";
-                    var secret = _secretClient.GetSecret(secretName);
+                    var secret = _secretClient.GetSecret("source1-client-secret");
                     return secret.Value.Value;
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Fall through to configuration
+                    throw new InvalidOperationException($"Failed to retrieve client secret from Key Vault: {ex.Message}", ex);
                 }
             }
 
-            // Look for client secret in configuration
-            var clientSecret = _configuration[$"OneDriveSource:ClientSecret"] ?? _configuration[$"OneDriveDestination:ClientSecret"];
-            if (string.IsNullOrEmpty(clientSecret))
-            {
-                throw new InvalidOperationException($"Client secret not found for client ID: {clientId}");
-            }
-
-            return clientSecret;
+            throw new InvalidOperationException("Key Vault is not configured. Cannot retrieve client secret.");
         }
     }
 }

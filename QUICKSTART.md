@@ -88,23 +88,28 @@ key_vault_name  = "photosync-kv-UNIQUE"  # Change UNIQUE to something random
 
 # Same client ID and "common" tenant for all accounts
 onedrive1_config = {
-  "OneDrive1:ClientId"        = "your-client-id"
-  "OneDrive1:TenantId"        = "common"
-  "OneDrive1:SourceFolder"    = "/Photos"
-  "OneDrive1:DeleteAfterSync" = "false"
+  "OneDrive1:ClientId"               = "your-client-id"
+  "OneDrive1:TenantId"               = "common"
+  "OneDrive1:RefreshTokenSecretName" = "source1-refresh-token"
+  "OneDrive1:SourceFolder"           = "/Photos"
+  "OneDrive1:DeleteAfterSync"        = "false"
+  "OneDrive1:MaxFilesPerRun"         = "100"  # Limit files per run to prevent timeout
 }
 
 onedrive2_config = {
-  "OneDrive2:ClientId"        = "your-client-id"  # Same as above
-  "OneDrive2:TenantId"        = "common"
-  "OneDrive2:SourceFolder"    = "/Pictures"
-  "OneDrive2:DeleteAfterSync" = "false"
+  "OneDrive2:ClientId"               = "your-client-id"  # Same as above
+  "OneDrive2:TenantId"               = "common"
+  "OneDrive2:RefreshTokenSecretName" = "source2-refresh-token"
+  "OneDrive2:SourceFolder"           = "/Pictures"
+  "OneDrive2:DeleteAfterSync"        = "false"
+  "OneDrive2:MaxFilesPerRun"         = "100"  # Limit files per run to prevent timeout
 }
 
 onedrive_destination_config = {
-  "OneDriveDestination:ClientId"          = "your-client-id"  # Same as above
-  "OneDriveDestination:TenantId"          = "common"
-  "OneDriveDestination:DestinationFolder" = "/Synced Photos"
+  "OneDriveDestination:ClientId"               = "your-client-id"  # Same as above
+  "OneDriveDestination:TenantId"               = "common"
+  "OneDriveDestination:RefreshTokenSecretName" = "destination-refresh-token"
+  "OneDriveDestination:DestinationFolder"      = "/Synced Photos"
 }
 
 # Paste the refresh tokens from Step 2
@@ -132,9 +137,10 @@ terraform apply
 
 Type `yes` when prompted. This creates:
 - Two Function Apps (one for each source account)
-- Azure Key Vault (for refresh tokens)
+- Azure Key Vault (for refresh tokens) with automatic configuration
 - Storage accounts (for state tracking)
 - Application Insights (for monitoring)
+- All necessary app settings including Key Vault URL
 
 ### 5. Deploy Function Code (2 minutes)
 
@@ -194,6 +200,22 @@ Examples:
 - Every 6 hours: `"0 0 */6 * * *"`
 - Every day at 8 PM: `"0 0 20 * * *"`
 - Twice daily (6 AM & 6 PM): `"0 0 6,18 * * *"`
+
+## Configuration Options
+
+### MaxFilesPerRun
+
+The `MaxFilesPerRun` setting limits how many files are processed in a single run. This is useful for:
+- **Initial sync**: When you have many files, process them incrementally to avoid timeout
+- **Consumption plan limits**: Azure Functions Consumption plan has a 10-minute timeout
+- **Controlled syncing**: Process files in smaller batches for better monitoring
+
+**Recommended values:**
+- **100-200 files**: Good balance for initial sync with many files
+- **Unlimited**: Set to a very high number (e.g., `"999999"`) once initial sync is complete
+- **Adjust based on file sizes**: Larger photos/videos may need lower limits
+
+Example: If you have 1000 photos and set `MaxFilesPerRun = "100"`, it will take 10 runs (10 days at daily schedule) to sync all files.
 
 ## Troubleshooting
 

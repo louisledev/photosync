@@ -258,50 +258,30 @@ terraform apply
 **Important Notes:**
 - Each Function App deployment handles one source account
 - Refresh tokens are stored securely in Azure Key Vault
-- Function Apps use managed identities to access Key Vault
+- Function Apps use managed identities to access Key Vault (configured automatically by Terraform)
+- Key Vault URL is automatically configured by Terraform
 - Set `DeleteAfterSync` to `true` to automatically delete source files after sync
 - Set `DeleteAfterSync` to `false` (default) to keep source files in place
+- Set `MaxFilesPerRun` to limit files processed per run (e.g., `"100"`) to prevent timeout during initial sync
 - Folder paths are relative to the OneDrive root
 - Use forward slashes `/` for folder paths
 
-### Step 4: Configure Function Apps for Refresh Token Authentication
+### Step 4: Deploy Function Code
 
-After Terraform deployment completes, configure both Function Apps to use refresh token authentication:
+Deploy the application code to both Function Apps:
 
 ```bash
 # Get deployment outputs
 SOURCE1=$(terraform output -raw function_app_source1_name)
 SOURCE2=$(terraform output -raw function_app_source2_name)
-VAULT_URI=$(terraform output -raw key_vault_uri)
 
-# Configure Function App 1
-az functionapp config appsettings set \
-  --name $SOURCE1 \
-  --resource-group PhotoSyncRG \
-  --settings \
-    "UseRefreshTokenAuth=true" \
-    "KeyVault:VaultUrl=$VAULT_URI"
-
-# Configure Function App 2
-az functionapp config appsettings set \
-  --name $SOURCE2 \
-  --resource-group PhotoSyncRG \
-  --settings \
-    "UseRefreshTokenAuth=true" \
-    "KeyVault:VaultUrl=$VAULT_URI"
-```
-
-### Step 5: Deploy Function Code
-
-Deploy the application code to both Function Apps:
-
-```bash
+# Deploy the code
 cd src
 func azure functionapp publish $SOURCE1
 func azure functionapp publish $SOURCE2
 ```
 
-### Step 6: Configure Schedule (Optional)
+### Step 5: Configure Schedule (Optional)
 
 The function is set to run daily at 2 AM UTC by default. To change this:
 

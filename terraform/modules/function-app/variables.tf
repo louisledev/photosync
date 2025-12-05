@@ -34,3 +34,9 @@ variable "destination_config" {
   type        = map(string)
   sensitive   = true
 }
+
+variable "key_vault_url" {
+  description = "URL of the Azure Key Vault for storing secrets"
+  type        = string
+  default     = ""
+}

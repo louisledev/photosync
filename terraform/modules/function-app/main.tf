@@ -43,6 +43,9 @@ resource "azurerm_linux_function_app" "function" {
       "WEBSITE_RUN_FROM_PACKAGE" = "1"
       "AzureWebJobsFeatureFlags" = "EnableWorkerIndexing"
     },
+    var.key_vault_url != "" ? {
+      "KeyVault__VaultUrl" = var.key_vault_url
+    } : {},
     var.source_config,
     var.destination_config
   )

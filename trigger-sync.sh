@@ -13,7 +13,7 @@ open_url() {
         open "$url"
     elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
         # Check if running under WSL
-        if grep -qi microsoft /proc/version 2>/dev/null || [[ -d /mnt/c ]]; then
+        if [[ -n "$WSL_DISTRO_NAME" ]] || grep -qi microsoft /proc/version 2>/dev/null || [[ -d /mnt/c ]]; then
             # WSL
             cmd.exe /c start "" "$url"
         elif command -v xdg-open &> /dev/null; then

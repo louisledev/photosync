@@ -38,6 +38,24 @@ namespace PhotoSync
             return new GraphServiceClient(authProvider);
         }
 
+        public async Task<(bool IsValid, string? ErrorMessage)> ValidateRefreshTokenAsync(
+            string clientId,
+            string tenantId,
+            string refreshTokenSecretName,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var refreshToken = GetRefreshToken(refreshTokenSecretName);
+                var authProvider = new RefreshTokenAuthenticationProvider(clientId, GetClientSecret(clientId), refreshToken, _httpClient);
+                return await authProvider.ValidateRefreshTokenAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Failed to validate token for {refreshTokenSecretName}: {ex.Message}");
+            }
+        }
+
         private string GetRefreshToken(string keyName)
         {
             if (_secretClient == null)

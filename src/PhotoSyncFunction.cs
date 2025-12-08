@@ -36,7 +36,7 @@ namespace PhotoSync
         }
 
         [Function("PhotoSyncTimer")]
-        public async Task Run([TimerTrigger("0 0 2 * * *")] TimerInfo myTimer)
+        public async Task Run([TimerTrigger("0 0 * * * *")] TimerInfo myTimer)
         {
             _logger.LogInformation($"Photo sync function started at: {DateTime.UtcNow}");
 
@@ -108,6 +108,33 @@ namespace PhotoSync
             _logger.LogInformation($"Processing source account with client ID: {sourceConfig.ClientId}");
             _logger.LogInformation($"Max files per run: {(sourceConfig.MaxFilesPerRun == int.MaxValue ? "unlimited" : sourceConfig.MaxFilesPerRun.ToString())}");
 
+            // Validate refresh tokens before starting sync
+            _logger.LogInformation("Validating refresh tokens...");
+
+            var sourceValidation = await _graphClientFactory.ValidateRefreshTokenAsync(
+                sourceConfig.ClientId,
+                sourceConfig.TenantId,
+                sourceConfig.RefreshTokenSecretName);
+
+            if (!sourceValidation.IsValid)
+            {
+                _logger.LogWarning($"Source account refresh token is invalid: {sourceValidation.ErrorMessage}");
+                throw new InvalidOperationException($"Source account refresh token validation failed: {sourceValidation.ErrorMessage}");
+            }
+
+            var destinationValidation = await _graphClientFactory.ValidateRefreshTokenAsync(
+                destinationConfig.ClientId,
+                destinationConfig.TenantId,
+                destinationConfig.RefreshTokenSecretName);
+
+            if (!destinationValidation.IsValid)
+            {
+                _logger.LogWarning($"Destination account refresh token is invalid: {destinationValidation.ErrorMessage}");
+                throw new InvalidOperationException($"Destination account refresh token validation failed: {destinationValidation.ErrorMessage}");
+            }
+
+            _logger.LogInformation("All refresh tokens validated successfully");
+
             var sourceClient = CreateGraphClient(
                 sourceConfig.ClientId,
                 sourceConfig.TenantId,
@@ -122,8 +149,11 @@ namespace PhotoSync
             var processedCount = 0;
 
             // Get new photos from source
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             var photos = await GetPhotosFromFolderAsync(sourceClient, sourceConfig.SourceFolder);
+            stopwatch.Stop();
 
+            _logger.LogInformation($"GetPhotosFromFolderAsync completed in {stopwatch.Elapsed.TotalSeconds:F2} seconds");
             _logger.LogInformation($"Found {photos.Count} total files, processing up to {sourceConfig.MaxFilesPerRun} new files");
 
             foreach (var photo in photos)

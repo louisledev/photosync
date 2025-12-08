@@ -7,6 +7,7 @@ echo ""
 cd terraform
 SOURCE1=$(terraform output -raw function_app_source1_name)
 SOURCE2=$(terraform output -raw function_app_source2_name)
+LOGS_URL=$(terraform output -raw logs_portal_url 2>/dev/null)
 cd ..
 
 echo "Function Apps:"
@@ -14,48 +15,37 @@ echo "  - Source 1: $SOURCE1"
 echo "  - Source 2: $SOURCE2"
 echo ""
 
-# Build the project
-echo "=== Building project ==="
+# Build and publish the project
+echo "=== Building and publishing project ==="
 cd src
 dotnet clean
-dotnet build --configuration Release
+dotnet publish --configuration Release
 if [ $? -ne 0 ]; then
-    echo "ERROR: Build failed!"
+    echo "ERROR: Build/publish failed!"
     exit 1
 fi
 echo ""
 
 # Deploy to Source 1
 echo "=== Deploying to $SOURCE1 ==="
-func azure functionapp publish $SOURCE1 --dotnet-isolated || {
-    echo "WARNING: Deployment returned an error, but continuing..."
-    echo "This is often a false positive 'sync triggers' error."
-}
+func azure functionapp publish $SOURCE1
+if [ $? -ne 0 ]; then
+    echo "ERROR: Deployment to $SOURCE1 failed!"
+    exit 1
+fi
 echo ""
 
 # Wait a moment
-sleep 5
+sleep 3
 
 # Deploy to Source 2
 echo "=== Deploying to $SOURCE2 ==="
-func azure functionapp publish $SOURCE2 --dotnet-isolated || {
-    echo "WARNING: Deployment returned an error, but continuing..."
-    echo "This is often a false positive 'sync triggers' error."
-}
+func azure functionapp publish $SOURCE2
+if [ $? -ne 0 ]; then
+    echo "ERROR: Deployment to $SOURCE2 failed!"
+    exit 1
+fi
 echo ""
-
-# Wait for deployment to stabilize
-sleep 5
-
-# Restart both Function Apps to ensure triggers are registered
-echo "=== Restarting Function Apps ==="
-az functionapp restart --name $SOURCE1 --resource-group PhotoSyncRG
-az functionapp restart --name $SOURCE2 --resource-group PhotoSyncRG
-echo ""
-
-# Wait for restart
-echo "Waiting for Function Apps to start..."
-sleep 30
 
 # Verify deployment
 echo "=== Verifying deployment ==="
@@ -69,8 +59,14 @@ echo ""
 
 echo "=== Deployment complete! ==="
 echo ""
-echo "To view logs:"
-echo "  az functionapp log tail --name $SOURCE1 --resource-group PhotoSyncRG"
+echo "To view logs in Application Insights:"
+if [ ! -z "$LOGS_URL" ]; then
+    echo "  $LOGS_URL"
+else
+    echo "  Azure Portal → Application Insights → photosync-insights → Logs"
+fi
 echo ""
 echo "To trigger manually:"
-echo "  az functionapp function invoke --name $SOURCE1 --resource-group PhotoSyncRG --function-name PhotoSyncTimer"
+echo "  ./trigger-sync.sh                 # Trigger both Function Apps"
+echo "  ./trigger-sync.sh --source1-only  # Trigger Source 1 only"
+echo "  ./trigger-sync.sh --logs          # Trigger and open logs"

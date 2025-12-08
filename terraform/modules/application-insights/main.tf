@@ -10,4 +10,10 @@ resource "azurerm_application_insights" "photosync" {
     ManagedBy   = "Terraform"
     Project     = "PhotoSync"
   }
+
+  lifecycle {
+    ignore_changes = [
+      workspace_id,
+    ]
+  }
 }

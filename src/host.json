@@ -3,12 +3,13 @@
   "logging": {
     "applicationInsights": {
       "samplingSettings": {
-        "isEnabled": true,
-        "maxTelemetryItemsPerSecond": 20
-      }
+        "isEnabled": false
+      },
+      "enableLiveMetricsFilters": true
     },
     "logLevel": {
       "default": "Information",
+      "PhotoSync": "Information",
       "Microsoft": "Warning",
       "Microsoft.Hosting.Lifetime": "Information"
     }

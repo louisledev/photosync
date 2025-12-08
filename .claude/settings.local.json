@@ -20,7 +20,7 @@
       "Bash(/usr/local/share/dotnet/dotnet build /Users/louis/src/perso/photosync/src/PhotoSync.csproj)",
       "Bash(dotnet clean:*)",
       "Bash(dotnet list:*)",
-      "Bash(az functionapp config appsettings list:*)"
+      "Bash(/usr/local/share/dotnet/dotnet build:*)"
     ],
     "deny": [],
     "ask": []

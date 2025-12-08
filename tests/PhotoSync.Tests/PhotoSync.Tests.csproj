@@ -5,7 +5,15 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
-    <!-- Suppress warnings common in test code -->
+    <!-- Suppress warnings common in test code:
+         CS8600 = Possible null reference conversion
+         CS8602 = Possible dereference of null reference
+         CS8625 = Cannot convert null literal to non-nullable reference type
+         CS8620 = Argument cannot be used for parameter due to differences in nullability
+         CS1998 = Async method lacks 'await' operators and will run synchronously
+         xUnit1012 = Test method should not have parameters
+         xUnit2009 = Do not use Assert.Equal() to check for collection size
+    -->
     <NoWarn>CS8600;CS8602;CS8625;CS8620;CS1998;xUnit1012;xUnit2009</NoWarn>
   </PropertyGroup>
 

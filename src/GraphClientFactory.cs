@@ -30,11 +30,11 @@ namespace PhotoSync
             }
         }
 
-        public GraphServiceClient CreateClient(string clientId, string tenantId, string refreshTokenSecretName)
+        public GraphServiceClient CreateClient(string clientId, string tenantId, string refreshTokenSecretName, string? clientSecretName = null)
         {
             // Always use refresh token authentication for personal Microsoft accounts
             var refreshToken = GetRefreshToken(refreshTokenSecretName);
-            var authProvider = new RefreshTokenAuthenticationProvider(clientId, GetClientSecret(clientId), refreshToken, _httpClient);
+            var authProvider = new RefreshTokenAuthenticationProvider(clientId, GetClientSecret(clientSecretName), refreshToken, _httpClient);
             return new GraphServiceClient(authProvider);
         }
 
@@ -42,12 +42,13 @@ namespace PhotoSync
             string clientId,
             string tenantId,
             string refreshTokenSecretName,
+            string? clientSecretName = null,
             CancellationToken cancellationToken = default)
         {
             try
             {
                 var refreshToken = GetRefreshToken(refreshTokenSecretName);
-                var authProvider = new RefreshTokenAuthenticationProvider(clientId, GetClientSecret(clientId), refreshToken, _httpClient);
+                var authProvider = new RefreshTokenAuthenticationProvider(clientId, GetClientSecret(clientSecretName), refreshToken, _httpClient);
                 return await authProvider.ValidateRefreshTokenAsync(cancellationToken);
             }
             catch (Exception ex)
@@ -74,24 +75,27 @@ namespace PhotoSync
             }
         }
 
-        private string GetClientSecret(string clientId)
+        private string GetClientSecret(string? clientSecretName = null)
         {
-            // For personal accounts, all sources use the same client ID and secret
-            // Try source1-client-secret first (they're all the same)
-            if (_secretClient != null)
+            if (_secretClient == null)
             {
-                try
-                {
-                    var secret = _secretClient.GetSecret("source1-client-secret");
-                    return secret.Value.Value;
-                }
-                catch (Exception ex)
-                {
-                    throw new InvalidOperationException($"Failed to retrieve client secret from Key Vault: {ex.Message}", ex);
-                }
+                throw new InvalidOperationException("Key Vault is not configured. Cannot retrieve client secret.");
             }
 
-            throw new InvalidOperationException("Key Vault is not configured. Cannot retrieve client secret.");
+            // Use provided secret name, or fall back to configuration, or use default
+            var secretName = clientSecretName 
+                ?? _configuration["KeyVault:ClientSecretName"] 
+                ?? "source1-client-secret";
+
+            try
+            {
+                var secret = _secretClient.GetSecret(secretName);
+                return secret.Value.Value;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Failed to retrieve client secret '{secretName}' from Key Vault: {ex.Message}", ex);
+            }
         }
     }
 }

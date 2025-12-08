@@ -47,6 +47,10 @@ echo "=== Deploying to $SOURCE2 ==="
 func azure functionapp publish $SOURCE2
 if [ $? -ne 0 ]; then
     echo "ERROR: Deployment to $SOURCE2 failed!"
+    echo "Troubleshooting tips:"
+    echo "  - Check that Azure CLI is logged in (run: az login)"
+    echo "  - Verify the Function App '$SOURCE2' exists in your Azure subscription"
+    echo "  - Ensure you have sufficient permissions to deploy to the Function App"
     exit 1
 fi
 echo ""

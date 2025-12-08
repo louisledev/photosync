@@ -150,7 +150,7 @@ brew install azure-functions-core-tools@4
 
 **This guide is for Personal Microsoft Accounts Only**
 
-This project is designed for **personal Microsoft accounts** (outlook.com, hotmail.com, live.com) using refresh token authentication. See [PERSONAL_ACCOUNTS_SETUP.md](PERSONAL_ACCOUNTS_SETUP.md) for detailed instructions or [QUICKSTART_PERSONAL_ACCOUNTS.md](QUICKSTART_PERSONAL_ACCOUNTS.md) for a quick start guide.
+This project is designed for **personal Microsoft accounts** (outlook.com, hotmail.com, live.com) using refresh token authentication. See [QUICKSTART.md](QUICKSTART.md) for a quick start guide or [PERSONAL_ACCOUNTS_SETUP.md](PERSONAL_ACCOUNTS_SETUP.md) for detailed instructions.
 
 ### Step 1: Register ONE Azure AD Application
 

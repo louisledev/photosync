@@ -183,12 +183,12 @@ destination_client_secret_for_vault  = "your-actual-client-secret"  # Same
 
 # Configure Function Apps to use refresh tokens
 # Use "common" as tenant ID for personal accounts
-# ClientSecret value should be the Key Vault secret NAME, not the actual token
+# Note: "ClientSecret" is historical naming - it stores the refresh token secret NAME
 onedrive1_config = {
   "OneDrive1:ClientId"              = "your-client-id"
   "OneDrive1:TenantId"              = "common"
-  "OneDrive1:ClientSecret"          = "source1-refresh-token"  # Secret NAME for refresh token
-  "OneDrive1:ClientSecretName"      = "source1-client-secret"  # Optional: Secret NAME for OAuth client secret
+  "OneDrive1:ClientSecret"          = "source1-refresh-token"  # Key Vault secret NAME containing the refresh token
+  "OneDrive1:ClientSecretName"      = "source1-client-secret"  # Optional: Key Vault secret NAME containing the OAuth client secret
   "OneDrive1:SourceFolder"          = "Pictures/CameraRoll"
   "OneDrive1:DeleteAfterSync"       = "false"
 }
@@ -196,8 +196,8 @@ onedrive1_config = {
 onedrive2_config = {
   "OneDrive2:ClientId"              = "your-client-id"  # Same
   "OneDrive2:TenantId"              = "common"
-  "OneDrive2:ClientSecret"          = "source2-refresh-token"  # Secret NAME for refresh token
-  "OneDrive2:ClientSecretName"      = "source2-client-secret"  # Optional: Secret NAME for OAuth client secret
+  "OneDrive2:ClientSecret"          = "source2-refresh-token"  # Key Vault secret NAME containing the refresh token
+  "OneDrive2:ClientSecretName"      = "source2-client-secret"  # Optional: Key Vault secret NAME containing the OAuth client secret
   "OneDrive2:SourceFolder"          = "Pictures/CameraRoll"
   "OneDrive2:DeleteAfterSync"       = "false"
 }
@@ -205,8 +205,8 @@ onedrive2_config = {
 onedrive_destination_config = {
   "OneDriveDestination:ClientId"            = "your-client-id"  # Same
   "OneDriveDestination:TenantId"            = "common"
-  "OneDriveDestination:ClientSecret"        = "destination-refresh-token"  # Secret NAME for refresh token
-  "OneDriveDestination:ClientSecretName"    = "destination-client-secret"  # Optional: Secret NAME for OAuth client secret
+  "OneDriveDestination:ClientSecret"        = "destination-refresh-token"  # Key Vault secret NAME containing the refresh token
+  "OneDriveDestination:ClientSecretName"    = "destination-client-secret"  # Optional: Key Vault secret NAME containing the OAuth client secret
   "OneDriveDestination:DestinationFolder"   = "Pictures/FamilyPhotos"
 }
 ```

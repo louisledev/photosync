@@ -82,7 +82,10 @@ namespace PhotoSync
                 throw new InvalidOperationException("Key Vault is not configured. Cannot retrieve client secret.");
             }
 
-            // Use provided secret name, or fall back to configuration, or use default
+            // Determine the secret name with fallback priority:
+            // 1. Explicitly provided clientSecretName parameter (highest priority)
+            // 2. KeyVault:ClientSecretName from application configuration
+            // 3. Default "source1-client-secret" for backward compatibility
             var secretName = clientSecretName 
                 ?? _configuration["KeyVault:ClientSecretName"] 
                 ?? "source1-client-secret";

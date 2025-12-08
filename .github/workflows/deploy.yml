@@ -55,11 +55,18 @@ jobs:
           cd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
           dotnet publish PhotoSync.csproj --configuration Release --output ${{ github.workspace }}/${{ env.OUTPUT_PATH }}
 
+      - name: Verify .azurefunctions folder exists
+        run: |
+          echo "Contents of output directory:"
+          ls -la ${{ github.workspace }}/${{ env.OUTPUT_PATH }}
+          echo "Checking for .azurefunctions folder:"
+          ls -la ${{ github.workspace }}/${{ env.OUTPUT_PATH }}/.azurefunctions || echo ".azurefunctions folder not found"
+
       - name: Upload artifact for deployment
         uses: actions/upload-artifact@v5
         with:
           name: function-app
-          path: ${{ env.OUTPUT_PATH }}
+          path: ${{ github.workspace }}/${{ env.OUTPUT_PATH }}
 
   deploy:
     runs-on: ubuntu-latest
@@ -77,6 +84,13 @@ jobs:
         with:
           name: function-app
           path: ${{ env.OUTPUT_PATH }}
+
+      - name: Verify downloaded artifact contents
+        run: |
+          echo "Contents of downloaded artifact:"
+          ls -la ${{ env.OUTPUT_PATH }}
+          echo "Checking for .azurefunctions folder:"
+          ls -la ${{ env.OUTPUT_PATH }}/.azurefunctions || echo ".azurefunctions folder not found"
 
       - name: Login to Azure
         uses: azure/login@v2

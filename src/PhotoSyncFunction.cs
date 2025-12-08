@@ -90,7 +90,6 @@ namespace PhotoSync
             var sourceConfig = new
             {
                 ClientId = _configuration["OneDriveSource:ClientId"],
-                TenantId = _configuration["OneDriveSource:TenantId"],
                 RefreshTokenSecretName = _configuration["OneDriveSource:RefreshTokenSecretName"],
                 ClientSecretName = _configuration["OneDriveSource:ClientSecretName"],
                 SourceFolder = _configuration["OneDriveSource:SourceFolder"],
@@ -101,7 +100,6 @@ namespace PhotoSync
             var destinationConfig = new
             {
                 ClientId = _configuration["OneDriveDestination:ClientId"],
-                TenantId = _configuration["OneDriveDestination:TenantId"],
                 RefreshTokenSecretName = _configuration["OneDriveDestination:RefreshTokenSecretName"],
                 ClientSecretName = _configuration["OneDriveDestination:ClientSecretName"],
                 DestinationFolder = _configuration["OneDriveDestination:DestinationFolder"]
@@ -115,7 +113,6 @@ namespace PhotoSync
 
             var sourceValidation = await _graphClientFactory.ValidateRefreshTokenAsync(
                 sourceConfig.ClientId,
-                sourceConfig.TenantId,
                 sourceConfig.RefreshTokenSecretName,
                 sourceConfig.ClientSecretName);
 
@@ -127,7 +124,6 @@ namespace PhotoSync
 
             var destinationValidation = await _graphClientFactory.ValidateRefreshTokenAsync(
                 destinationConfig.ClientId,
-                destinationConfig.TenantId,
                 destinationConfig.RefreshTokenSecretName,
                 destinationConfig.ClientSecretName);
 
@@ -141,13 +137,11 @@ namespace PhotoSync
 
             var sourceClient = CreateGraphClient(
                 sourceConfig.ClientId,
-                sourceConfig.TenantId,
                 sourceConfig.RefreshTokenSecretName,
                 sourceConfig.ClientSecretName);
 
             var destinationClient = CreateGraphClient(
                 destinationConfig.ClientId,
-                destinationConfig.TenantId,
                 destinationConfig.RefreshTokenSecretName,
                 destinationConfig.ClientSecretName);
 
@@ -245,9 +239,9 @@ namespace PhotoSync
             }
         }
 
-        private GraphServiceClient CreateGraphClient(string clientId, string tenantId, string refreshTokenSecretName, string? clientSecretName = null)
+        private GraphServiceClient CreateGraphClient(string clientId, string refreshTokenSecretName, string clientSecretName)
         {
-            return _graphClientFactory.CreateClient(clientId, tenantId, refreshTokenSecretName, clientSecretName);
+            return _graphClientFactory.CreateClient(clientId, refreshTokenSecretName, clientSecretName);
         }
 
         private async Task<List<DriveItem>> GetPhotosFromFolderAsync(GraphServiceClient client, string folderPath)

@@ -86,11 +86,12 @@ Edit `terraform.tfvars` with your values:
 enable_keyvault = true
 key_vault_name  = "photosync-kv-UNIQUE"  # Change UNIQUE to something random
 
-# Same client ID and "common" tenant for all accounts
+# Same client ID for all accounts
+# Note: Tenant is always "common" for personal accounts (hardcoded in auth provider)
 onedrive1_config = {
   "OneDrive1:ClientId"               = "your-client-id"
-  "OneDrive1:TenantId"               = "common"
   "OneDrive1:RefreshTokenSecretName" = "source1-refresh-token"
+  "OneDrive1:ClientSecretName"       = "source1-client-secret"
   "OneDrive1:SourceFolder"           = "/Photos"
   "OneDrive1:DeleteAfterSync"        = "false"
   "OneDrive1:MaxFilesPerRun"         = "100"  # Limit files per run to prevent timeout
@@ -98,8 +99,8 @@ onedrive1_config = {
 
 onedrive2_config = {
   "OneDrive2:ClientId"               = "your-client-id"  # Same as above
-  "OneDrive2:TenantId"               = "common"
   "OneDrive2:RefreshTokenSecretName" = "source2-refresh-token"
+  "OneDrive2:ClientSecretName"       = "source2-client-secret"
   "OneDrive2:SourceFolder"           = "/Pictures"
   "OneDrive2:DeleteAfterSync"        = "false"
   "OneDrive2:MaxFilesPerRun"         = "100"  # Limit files per run to prevent timeout
@@ -107,8 +108,8 @@ onedrive2_config = {
 
 onedrive_destination_config = {
   "OneDriveDestination:ClientId"               = "your-client-id"  # Same as above
-  "OneDriveDestination:TenantId"               = "common"
   "OneDriveDestination:RefreshTokenSecretName" = "destination-refresh-token"
+  "OneDriveDestination:ClientSecretName"       = "destination-client-secret"
   "OneDriveDestination:DestinationFolder"      = "/Synced Photos"
 }
 
@@ -206,9 +207,9 @@ To test immediately without waiting for the schedule, use the trigger script:
 
 ## Schedule
 
-The function runs automatically daily at 2 AM UTC. To change:
+The function runs automatically every hour. To change:
 1. Open `PhotoSyncFunction.cs`
-2. Change the cron expression: `[TimerTrigger("0 0 2 * * *")]`
+2. Change the cron expression: `[TimerTrigger("0 0 * * * *")]`
 
 Examples:
 - Every 6 hours: `"0 0 */6 * * *"`

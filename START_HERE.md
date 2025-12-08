@@ -6,7 +6,7 @@ Welcome! This project automates syncing family photos from multiple OneDrive acc
 
 - Deploys **two separate Azure Function Apps** for complete isolation
 - Each Function App syncs from one OneDrive source account
-- Automatically downloads photos daily at 2 AM UTC
+- Automatically downloads photos every hour
 - Renames photos based on EXIF date/time metadata
 - Uploads to a single destination OneDrive
 - Prevents duplicate processing
@@ -222,7 +222,7 @@ After setup, you should see:
 - ✅ Photos appear in destination OneDrive
 - ✅ Files renamed with date format (YYYYMMDD_HHMMSS.jpg)
 - ✅ No errors in Azure logs for either app
-- ✅ Both functions run on schedule (daily at 2 AM UTC)
+- ✅ Both functions run on schedule (every hour)
 
 ## 🎉 Ready to Begin?
 

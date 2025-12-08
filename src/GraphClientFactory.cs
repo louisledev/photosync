@@ -30,7 +30,7 @@ namespace PhotoSync
             }
         }
 
-        public GraphServiceClient CreateClient(string clientId, string tenantId, string refreshTokenSecretName, string? clientSecretName = null)
+        public GraphServiceClient CreateClient(string clientId, string refreshTokenSecretName, string clientSecretName)
         {
             // Always use refresh token authentication for personal Microsoft accounts
             var refreshToken = GetRefreshToken(refreshTokenSecretName);
@@ -40,9 +40,8 @@ namespace PhotoSync
 
         public async Task<(bool IsValid, string? ErrorMessage)> ValidateRefreshTokenAsync(
             string clientId,
-            string tenantId,
             string refreshTokenSecretName,
-            string? clientSecretName = null,
+            string clientSecretName,
             CancellationToken cancellationToken = default)
         {
             try
@@ -75,29 +74,26 @@ namespace PhotoSync
             }
         }
 
-        private string GetClientSecret(string? clientSecretName = null)
+        private string GetClientSecret(string keyName)
         {
             if (_secretClient == null)
             {
                 throw new InvalidOperationException("Key Vault is not configured. Cannot retrieve client secret.");
             }
 
-            // Determine the secret name with fallback priority:
-            // 1. Explicitly provided clientSecretName parameter (highest priority)
-            // 2. KeyVault:ClientSecretName from application configuration
-            // 3. Default "source1-client-secret" for backward compatibility
-            var secretName = clientSecretName 
-                ?? _configuration["KeyVault:ClientSecretName"] 
-                ?? "source1-client-secret";
+            if (string.IsNullOrEmpty(keyName))
+            {
+                throw new ArgumentNullException(nameof(keyName), "Client secret name must be provided.");
+            }
 
             try
             {
-                var secret = _secretClient.GetSecret(secretName);
+                var secret = _secretClient.GetSecret(keyName);
                 return secret.Value.Value;
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException($"Failed to retrieve client secret '{secretName}' from Key Vault: {ex.Message}", ex);
+                throw new InvalidOperationException($"Failed to retrieve client secret '{keyName}' from Key Vault: {ex.Message}", ex);
             }
         }
     }

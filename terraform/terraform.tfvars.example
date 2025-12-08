@@ -27,15 +27,18 @@ key_vault_name  = "photosync-kv-UNIQUE"  # CHANGE THIS - must be globally unique
 # - Delegated permissions: Files.Read, Files.ReadWrite, offline_access
 #
 # Get your Client ID and Client Secret from Azure Portal, then paste them below.
-# You'll use the SAME values for all three accounts.
+# You'll use the SAME Client ID for all three accounts.
+#
+# Note: The tenant is always "common" for personal Microsoft accounts and is
+# hardcoded in the authentication provider, so you don't need to configure it.
 
 # ============================================================================
 # Source Account 1 (Your Personal Account)
 # ============================================================================
 onedrive1_config = {
   "OneDrive1:ClientId"               = "abc123-your-client-id-from-azure-portal"  # ← Paste your Client ID
-  "OneDrive1:TenantId"               = "common"                                    # ← Always "common" for personal accounts
   "OneDrive1:RefreshTokenSecretName" = "source1-refresh-token"                     # ← Key Vault secret name (DO NOT change)
+  "OneDrive1:ClientSecretName"       = "source1-client-secret"                     # ← Key Vault secret name (DO NOT change)
   "OneDrive1:SourceFolder"           = "/Photos"                                   # ← Your photos folder
   "OneDrive1:DeleteAfterSync"        = "false"                                     # ← Keep source files after sync
   "OneDrive1:MaxFilesPerRun"         = "20"                                        # ← Max files to process per run (prevents timeout)
@@ -46,8 +49,8 @@ onedrive1_config = {
 # ============================================================================
 onedrive2_config = {
   "OneDrive2:ClientId"               = "abc123-your-client-id-from-azure-portal"  # ← SAME Client ID as above
-  "OneDrive2:TenantId"               = "common"                                    # ← Always "common" for personal accounts
   "OneDrive2:RefreshTokenSecretName" = "source2-refresh-token"                     # ← Key Vault secret name (DO NOT change)
+  "OneDrive2:ClientSecretName"       = "source2-client-secret"                     # ← Key Vault secret name (DO NOT change)
   "OneDrive2:SourceFolder"           = "/Pictures"                                 # ← Wife's photos folder
   "OneDrive2:DeleteAfterSync"        = "false"                                     # ← Keep source files after sync
   "OneDrive2:MaxFilesPerRun"         = "20"                                        # ← Max files to process per run (prevents timeout)
@@ -58,8 +61,8 @@ onedrive2_config = {
 # ============================================================================
 onedrive_destination_config = {
   "OneDriveDestination:ClientId"               = "abc123-your-client-id-from-azure-portal"  # ← SAME Client ID as above
-  "OneDriveDestination:TenantId"               = "common"                                    # ← Always "common"
   "OneDriveDestination:RefreshTokenSecretName" = "destination-refresh-token"                 # ← Key Vault secret name (DO NOT change)
+  "OneDriveDestination:ClientSecretName"       = "destination-client-secret"                 # ← Key Vault secret name (DO NOT change)
   "OneDriveDestination:DestinationFolder"      = "/Synced Photos"                            # ← Destination folder
 }
 

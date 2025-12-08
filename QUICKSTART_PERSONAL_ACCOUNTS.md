@@ -54,9 +54,9 @@ enable_keyvault = true
 key_vault_name  = "photosync-kv-UNIQUE"  # Must be globally unique
 
 # OneDrive configuration (using ONE app registration for all accounts)
+# Note: Tenant is always "common" for personal accounts (hardcoded in auth provider)
 onedrive1_config = {
   "OneDrive1:ClientId"        = "your-client-id"
-  "OneDrive1:TenantId"        = "common"
   "OneDrive1:ClientSecret"    = "source1-refresh-token"  # Key Vault secret name
   "OneDrive1:SourceFolder"    = "Pictures/CameraRoll"
   "OneDrive1:DeleteAfterSync" = "false"
@@ -64,7 +64,6 @@ onedrive1_config = {
 
 onedrive2_config = {
   "OneDrive2:ClientId"        = "your-client-id"  # Same as above
-  "OneDrive2:TenantId"        = "common"
   "OneDrive2:ClientSecret"    = "source2-refresh-token"  # Key Vault secret name
   "OneDrive2:SourceFolder"    = "Pictures/CameraRoll"
   "OneDrive2:DeleteAfterSync" = "false"
@@ -72,7 +71,6 @@ onedrive2_config = {
 
 onedrive_destination_config = {
   "OneDriveDestination:ClientId"     = "your-client-id"  # Same as above
-  "OneDriveDestination:TenantId"     = "common"
   "OneDriveDestination:ClientSecret" = "destination-refresh-token"  # Key Vault secret name
   "OneDriveDestination:DestinationFolder" = "Pictures/FamilyPhotos"
 }

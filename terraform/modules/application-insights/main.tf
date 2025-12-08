@@ -12,6 +12,8 @@ resource "azurerm_application_insights" "photosync" {
   }
 
   lifecycle {
+    # Ignore workspace_id changes as it's automatically set by Azure during creation.
+    # This prevents Terraform from attempting unnecessary updates to this computed field.
     ignore_changes = [
       workspace_id,
     ]

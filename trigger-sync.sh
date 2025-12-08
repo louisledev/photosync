@@ -127,33 +127,22 @@ done
 # Trigger Source 1
 if [ "$TRIGGER_SOURCE1" = true ]; then
     echo "=== Triggering $SOURCE1 ==="
-    FUNCTION_KEY=$(az functionapp function keys list \
+    RESPONSE=$(az functionapp function invoke \
         --name $SOURCE1 \
         --resource-group PhotoSyncRG \
         --function-name ManualSync \
-        --query "default" \
-        -o tsv 2>/dev/null)
+        --no-prompt \
+        --output json 2>/dev/null)
 
-    if [ -z "$FUNCTION_KEY" ]; then
-        echo "ERROR: Could not get function key for $SOURCE1"
-        exit 1
-    fi
-
-    RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
-        "https://$SOURCE1.azurewebsites.net/api/manualsync?code=$FUNCTION_KEY")
-
-    HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-    BODY=$(echo "$RESPONSE" | sed '$d')
-
-    if [ "$HTTP_CODE" = "200" ]; then
+    if [ $? -eq 0 ]; then
         echo "✓ Successfully triggered $SOURCE1"
-        if [ ! -z "$BODY" ]; then
-            echo "  Response: $BODY"
+        if [ ! -z "$RESPONSE" ]; then
+            echo "  Response: $RESPONSE"
         fi
     else
-        echo "✗ Failed to trigger $SOURCE1 (HTTP $HTTP_CODE)"
-        if [ ! -z "$BODY" ]; then
-            echo "  Error: $BODY"
+        echo "✗ Failed to trigger $SOURCE1"
+        if [ ! -z "$RESPONSE" ]; then
+            echo "  Error: $RESPONSE"
         fi
     fi
     echo ""

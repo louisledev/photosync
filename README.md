@@ -404,10 +404,91 @@ The function automatically logs to Application Insights:
 - Clear the state: Delete all records from the `ProcessedPhotos` table in Azure Storage
 - The function will re-process all photos (will not create duplicates if they already exist)
 
+## Performance Limitations
+
+### 10-Minute Timeout on Consumption Plan
+
+The project uses Azure Functions **Consumption Plan (Y1)** which has a **maximum execution timeout of 10 minutes**. This is a hard limit that cannot be increased on this tier.
+
+**When this becomes a problem:**
+- **Initial sync with many files**: If you have thousands of photos (e.g., 7,000+ files), scanning the source folder alone can take 60-80 seconds
+- **Large file processing**: Processing large photos or videos may exceed the 10-minute limit
+- **Network latency**: Slow network connections can cause timeouts during upload/download
+
+**Current workaround:**
+The project includes a `MaxFilesPerRun` setting to limit files processed per execution:
+
+```hcl
+# In terraform.tfvars
+onedrive1_config = {
+  "OneDrive1:MaxFilesPerRun" = "20"  # Process only 20 files per run
+}
+```
+
+With hourly execution (`"0 0 * * * *"`), processing 20 files/hour = 480 files/day.
+
+**For large initial sync:**
+- Set `MaxFilesPerRun` to 20-50 depending on file sizes
+- Run hourly to gradually sync all files
+- After initial sync completes, you can increase the value or remove the limit
+
+### Solution: Upgrade to Premium or Dedicated Plan
+
+If you need longer execution times, upgrade to a higher-tier plan:
+
+#### **Premium Plan (EP1)** - Recommended for most users
+- **Timeout**: Up to 60 minutes (or unlimited with proper configuration)
+- **Cost**: ~$150-200/month per Function App
+- **Benefits**:
+  - VNet integration for secure connectivity
+  - Pre-warmed instances (no cold start)
+  - Unlimited execution duration (with AlwaysOn)
+  - More CPU and memory
+- **Best for**: Users with 10,000+ files or large video files
+
+#### **Dedicated Plan (App Service Plan S1)**
+- **Timeout**: Unlimited (no time restrictions)
+- **Cost**: ~$70/month per Function App
+- **Benefits**:
+  - Predictable pricing
+  - AlwaysOn enabled by default
+  - Shared with other App Service apps to reduce cost
+- **Best for**: Predictable workload, already using App Service Plan
+
+#### **How to upgrade:**
+
+1. **Via Azure Portal:**
+   - Go to Function App → Settings → Scale up (App Service Plan)
+   - Select Premium Plan (EP1) or Dedicated Plan (S1)
+   - Update the `functionTimeout` in [src/host.json](src/host.json#L17):
+     ```json
+     {
+       "functionTimeout": "01:00:00"  // 60 minutes (or "-1" for unlimited on Dedicated)
+     }
+     ```
+
+2. **Via Terraform** (recommended):
+   - Update `terraform/modules/function-app/main.tf`:
+     ```hcl
+     # Change from "Y1" (Consumption) to "EP1" (Premium)
+     resource "azurerm_service_plan" "function_plan" {
+       name                = "${var.function_app_name}-plan"
+       resource_group_name = var.resource_group_name
+       location            = var.location
+       os_type             = "Linux"
+       sku_name            = "EP1"  # Changed from "Y1"
+     }
+     ```
+   - Run `terraform apply` to update both Function Apps
+   - Update [src/host.json](src/host.json#L17) and redeploy code
+
+**Note:** Premium/Dedicated plans cost significantly more (~50-100x) than Consumption Plan. Only upgrade if you truly need longer execution times.
+
 ## Cost Estimation
 
 Based on moderate usage (500 photos/month with two Function Apps):
 
+### Consumption Plan (Current)
 - **Azure Functions Consumption Plan (2 apps)**: ~$0.40/month
 - **Azure Storage (2 storage accounts)**: ~$0.10/month
 - **Data Transfer**: ~$1-2/month (depends on photo sizes)
@@ -416,6 +497,22 @@ Based on moderate usage (500 photos/month with two Function Apps):
 **Total: ~$2.50-3/month**
 
 Note: The Consumption Plan charges per execution, so running two Function Apps costs nearly the same as one.
+
+### Premium Plan (EP1) - If You Need Longer Timeout
+- **Azure Functions Premium Plan (2 apps)**: ~$300-400/month
+- **Azure Storage (2 storage accounts)**: ~$0.10/month
+- **Data Transfer**: ~$1-2/month
+- **Application Insights**: Free tier should suffice
+
+**Total: ~$300-400/month**
+
+### Dedicated Plan (S1) - Alternative Option
+- **Azure Functions Dedicated Plan (2 apps)**: ~$140/month
+- **Azure Storage (2 storage accounts)**: ~$0.10/month
+- **Data Transfer**: ~$1-2/month
+- **Application Insights**: Free tier should suffice
+
+**Total: ~$140-145/month**
 
 ## Extending the Solution
 

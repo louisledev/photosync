@@ -51,7 +51,9 @@ jobs:
           reporter: dotnet-trx
 
       - name: Publish function app
-        run: dotnet publish ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}/PhotoSync.csproj --configuration Release --output ${{ env.OUTPUT_PATH }}
+        run: |
+          cd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+          dotnet publish PhotoSync.csproj --configuration Release --output ${{ github.workspace }}/${{ env.OUTPUT_PATH }}
 
       - name: Upload artifact for deployment
         uses: actions/upload-artifact@v5

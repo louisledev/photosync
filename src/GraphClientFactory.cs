@@ -78,7 +78,7 @@ namespace PhotoSync
         {
             if (_secretClient == null)
             {
-                throw new InvalidOperationException("Key Vault is not configured. Cannot retrieve client secret.");
+                throw new InvalidOperationException("Key Vault is not configured. Ensure 'KeyVault:VaultUrl' is set in configuration and Key Vault is enabled in Terraform (enable_keyvault = true).");
             }
 
             if (string.IsNullOrEmpty(keyName))

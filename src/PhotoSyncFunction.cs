@@ -212,7 +212,7 @@ namespace PhotoSync
                     var logPath = dateTaken.HasValue
                         ? $"{dateTaken.Value:yyyy}/{dateTaken.Value:yyyy-MM}/{newFileName}"
                         : newFileName;
-                    _logger.LogInformation($"Successfully synced ({processedCount}/{sourceConfig.MaxFilesPerRun}): {photo.Name} -> {logPath}");
+                    _logger.LogInformation($"Successfully synced ({processedCount}/{(sourceConfig.MaxFilesPerRun == int.MaxValue ? "unlimited" : sourceConfig.MaxFilesPerRun.ToString())}): {photo.Name} -> {logPath}");
 
                     // Delete source file if configured to do so
                     if (sourceConfig.DeleteAfterSync)

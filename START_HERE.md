@@ -118,7 +118,7 @@ az functionapp function invoke \
 
 ## 📅 Scheduling
 
-The function runs automatically **daily at 2 AM UTC**.
+The function runs automatically **every hour**.
 
 To change the schedule, edit `PhotoSyncFunction.cs`:
 ```csharp

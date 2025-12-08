@@ -17,7 +17,17 @@ This guide explains how to deploy the Photo Sync Azure Function using Terraform.
 az login
 ```
 
-### 2. Configure Variables
+### 2. Set Azure Subscription Environment Variable
+
+The Azure provider requires the subscription ID to be set as an environment variable:
+
+```bash
+export ARM_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+```
+
+This needs to be set in your shell session before running Terraform commands.
+
+### 3. Configure Variables
 
 Copy the example variables file and edit it with your values:
 

@@ -12,7 +12,7 @@ on:
 env:
   DOTNET_VERSION: '8.0.x'
   AZURE_FUNCTIONAPP_PACKAGE_PATH: './src'
-  OUTPUT_PATH: './output'
+  OUTPUT_PATH: 'output'
 
 jobs:
   build-and-test:

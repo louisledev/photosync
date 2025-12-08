@@ -22,6 +22,10 @@ dotnet clean
 dotnet publish --configuration Release
 if [ $? -ne 0 ]; then
     echo "ERROR: Build/publish failed!"
+    echo "Troubleshooting tips:"
+    echo "  - Check that .NET 8.0 SDK is installed (run: dotnet --version)"
+    echo "  - Review the build output above for specific errors"
+    echo "  - Ensure you are running this script from the project root directory"
     exit 1
 fi
 echo ""

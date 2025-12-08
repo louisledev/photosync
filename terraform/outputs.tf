@@ -48,3 +48,24 @@ output "setup_instructions" {
   description = "Next steps for completing setup"
   value       = var.enable_keyvault ? "See Key Vault setup instructions in PERSONAL_ACCOUNTS_SETUP.md" : "Standard deployment - see README.md"
 }
+
+output "application_insights_name" {
+  description = "Name of the Application Insights instance"
+  value       = module.application_insights.name
+}
+
+output "application_insights_app_id" {
+  description = "Application Insights application ID for querying logs"
+  value       = module.application_insights.app_id
+}
+
+output "application_insights_connection_string" {
+  description = "Application Insights connection string (sensitive)"
+  value       = module.application_insights.connection_string
+  sensitive   = true
+}
+
+output "logs_portal_url" {
+  description = "URL to view logs in Azure Portal"
+  value       = "https://portal.azure.com/#@/resource${module.application_insights.id}/logs"
+}

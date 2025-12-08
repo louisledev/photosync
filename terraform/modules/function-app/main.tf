@@ -46,6 +46,9 @@ resource "azurerm_linux_function_app" "function" {
     var.key_vault_url != "" ? {
       "KeyVault__VaultUrl" = var.key_vault_url
     } : {},
+    var.application_insights_connection_string != "" ? {
+      "APPLICATIONINSIGHTS_CONNECTION_STRING" = var.application_insights_connection_string
+    } : {},
     var.source_config,
     var.destination_config
   )

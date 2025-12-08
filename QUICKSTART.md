@@ -163,25 +163,39 @@ Your PhotoSync is now running with personal Microsoft accounts using secure refr
 
 ### Check Logs
 
-View real-time logs to see the sync process:
+View logs in Application Insights:
 
 ```bash
-# Check logs for Function App 1
-az functionapp log tail --name $SOURCE1 --resource-group PhotoSyncRG
+# Get the Application Insights logs URL
+cd terraform
+terraform output logs_portal_url
 
-# Check logs for Function App 2
-az functionapp log tail --name $SOURCE2 --resource-group PhotoSyncRG
+# Or view logs directly in Azure Portal
+# Navigate to: Application Insights → photosync-insights → Logs
+```
+
+You can also query logs using KQL (Kusto Query Language):
+```kql
+traces
+| where timestamp > ago(1h)
+| where cloud_RoleName contains "photosync"
+| order by timestamp desc
+| project timestamp, message, severityLevel
 ```
 
 ### Manually Trigger (Optional)
 
-To test immediately without waiting for the schedule:
+To test immediately without waiting for the schedule, use the trigger script:
 
 ```bash
-az functionapp function invoke \
-  --name $SOURCE1 \
-  --resource-group PhotoSyncRG \
-  --function-name PhotoSyncTimer
+# Trigger both Function Apps
+./trigger-sync.sh
+
+# Trigger only Source 1
+./trigger-sync.sh --source1-only
+
+# Trigger and view logs in Application Insights
+./trigger-sync.sh --logs
 ```
 
 ### Verify Photos

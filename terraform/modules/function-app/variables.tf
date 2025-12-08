@@ -40,3 +40,10 @@ variable "key_vault_url" {
   type        = string
   default     = ""
 }
+
+variable "application_insights_connection_string" {
+  description = "Application Insights connection string for monitoring"
+  type        = string
+  default     = ""
+  sensitive   = true
+}

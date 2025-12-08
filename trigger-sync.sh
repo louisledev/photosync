@@ -134,21 +134,31 @@ fi
 
 # Show logs if requested
 if [ "$SHOW_LOGS" = true ]; then
-    echo "=== Opening Azure Portal to view logs ==="
-    if [ "$TRIGGER_SOURCE1" = true ] && [ "$TRIGGER_SOURCE2" = false ]; then
-        open "https://portal.azure.com/#@/resource/subscriptions/$(az account show --query id -o tsv)/resourceGroups/PhotoSyncRG/providers/Microsoft.Web/sites/$SOURCE1/appServices"
-    elif [ "$TRIGGER_SOURCE2" = true ] && [ "$TRIGGER_SOURCE1" = false ]; then
-        open "https://portal.azure.com/#@/resource/subscriptions/$(az account show --query id -o tsv)/resourceGroups/PhotoSyncRG/providers/Microsoft.Web/sites/$SOURCE2/appServices"
+    echo "=== Opening Application Insights logs ==="
+
+    # Get Application Insights URL from Terraform
+    cd terraform
+    LOGS_URL=$(terraform output -raw logs_portal_url 2>/dev/null)
+    cd ..
+
+    if [ ! -z "$LOGS_URL" ]; then
+        echo "Opening Application Insights..."
+        open "$LOGS_URL"
     else
-        echo "Opening logs for both Function Apps..."
-        open "https://portal.azure.com/#@/resource/subscriptions/$(az account show --query id -o tsv)/resourceGroups/PhotoSyncRG/providers/Microsoft.Web/sites/$SOURCE1/appServices"
-        sleep 2
-        open "https://portal.azure.com/#@/resource/subscriptions/$(az account show --query id -o tsv)/resourceGroups/PhotoSyncRG/providers/Microsoft.Web/sites/$SOURCE2/appServices"
+        echo "Application Insights not found. Opening Function App logs instead..."
+        if [ "$TRIGGER_SOURCE1" = true ] && [ "$TRIGGER_SOURCE2" = false ]; then
+            open "https://portal.azure.com/#@/resource/subscriptions/$(az account show --query id -o tsv)/resourceGroups/PhotoSyncRG/providers/Microsoft.Web/sites/$SOURCE1/appServices"
+        elif [ "$TRIGGER_SOURCE2" = true ] && [ "$TRIGGER_SOURCE1" = false ]; then
+            open "https://portal.azure.com/#@/resource/subscriptions/$(az account show --query id -o tsv)/resourceGroups/PhotoSyncRG/providers/Microsoft.Web/sites/$SOURCE2/appServices"
+        else
+            open "https://portal.azure.com/#@/resource/subscriptions/$(az account show --query id -o tsv)/resourceGroups/PhotoSyncRG/providers/Microsoft.Web/sites/$SOURCE1/appServices"
+        fi
     fi
 fi
 
 echo "=== Done! ==="
 echo ""
 echo "To view logs:"
-echo "  - Azure Portal: https://portal.azure.com → Function Apps → Monitor"
+echo "  - Application Insights: Run './trigger-sync.sh --logs' or use Terraform output"
+echo "  - Azure Portal: https://portal.azure.com → Application Insights → photosync-insights"
 echo "  - Or check your destination OneDrive for synced photos"

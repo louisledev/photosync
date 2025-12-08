@@ -302,6 +302,83 @@ Examples:
 
 After changing, redeploy the code to both Function Apps.
 
+## Continuous Deployment with GitHub Actions
+
+The project includes a GitHub Actions workflow that automatically builds, tests, and deploys your code to Azure when you push to the `main` branch.
+
+### Setup GitHub Actions Deployment
+
+To enable automatic deployment, you need to configure GitHub secrets:
+
+#### 1. Create Azure Service Principal
+
+Create a service principal with contributor access to your resource group:
+
+```bash
+az ad sp create-for-rbac \
+  --name "photosync-github-deploy" \
+  --role contributor \
+  --scopes /subscriptions/$(az account show --query id -o tsv)/resourceGroups/PhotoSyncRG \
+  --sdk-auth
+```
+
+**Important:** Copy the entire JSON output - you'll need it in the next step.
+
+#### 2. Configure GitHub Secrets
+
+Create three secrets in your GitHub repository (Settings → Secrets and variables → Actions → New repository secret):
+
+**Using GitHub CLI (easiest):**
+
+```bash
+# Set Azure credentials (paste the JSON from step 1)
+gh secret set AZURE_CREDENTIALS --body '{
+  "clientId": "your-client-id",
+  "clientSecret": "your-client-secret",
+  "subscriptionId": "your-subscription-id",
+  "tenantId": "your-tenant-id",
+  ...
+}'
+
+# Set Function App names
+gh secret set AZURE_FUNCTIONAPP_SOURCE1_NAME --body "photosync-source1"
+gh secret set AZURE_FUNCTIONAPP_SOURCE2_NAME --body "photosync-source2"
+```
+
+**Or via GitHub Web UI:**
+
+1. Go to your repository → **Settings** → **Secrets and variables** → **Actions**
+2. Click **New repository secret**
+3. Create these three secrets:
+   - `AZURE_CREDENTIALS` - Paste the entire JSON from step 1
+   - `AZURE_FUNCTIONAPP_SOURCE1_NAME` - Value: `photosync-source1` (or your custom name from Terraform)
+   - `AZURE_FUNCTIONAPP_SOURCE2_NAME` - Value: `photosync-source2` (or your custom name from Terraform)
+
+#### 3. Verify Deployment
+
+Once configured, every push to `main` will:
+1. ✅ Build the solution
+2. ✅ Run all tests (unit + integration)
+3. ✅ Publish test results
+4. ✅ Deploy to both Function Apps
+
+You can monitor deployments in the **Actions** tab of your GitHub repository.
+
+### Manual Deployment
+
+If you prefer manual deployment, use the Azure Functions Core Tools:
+
+```bash
+# Get Function App names from Terraform
+SOURCE1=$(terraform output -raw function_app_source1_name)
+SOURCE2=$(terraform output -raw function_app_source2_name)
+
+# Deploy manually
+cd src
+func azure functionapp publish $SOURCE1
+func azure functionapp publish $SOURCE2
+```
+
 ## Testing
 
 The project includes comprehensive test coverage with **83 tests total**:

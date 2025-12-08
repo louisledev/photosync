@@ -160,6 +160,46 @@ func azure functionapp publish $SOURCE2
 
 Your PhotoSync is now running with personal Microsoft accounts using secure refresh token authentication.
 
+## Optional: Enable Continuous Deployment
+
+Set up GitHub Actions to automatically deploy your code when you push to `main`:
+
+### 1. Create Azure Service Principal
+
+```bash
+az ad sp create-for-rbac \
+  --name "photosync-github-deploy" \
+  --role contributor \
+  --scopes /subscriptions/$(az account show --query id -o tsv)/resourceGroups/PhotoSyncRG \
+  --sdk-auth
+```
+
+Copy the entire JSON output.
+
+### 2. Configure GitHub Secrets
+
+Using GitHub CLI:
+
+```bash
+# Set Azure credentials (paste the JSON from step 1)
+gh secret set AZURE_CREDENTIALS --body '{...JSON from above...}'
+
+# Set Function App names
+gh secret set AZURE_FUNCTIONAPP_SOURCE1_NAME --body "photosync-source1"
+gh secret set AZURE_FUNCTIONAPP_SOURCE2_NAME --body "photosync-source2"
+```
+
+Or via GitHub web UI: Repository → Settings → Secrets and variables → Actions
+
+### 3. Automatic Deployment
+
+Every push to `main` will now:
+- ✅ Build and test your code
+- ✅ Deploy to both Function Apps
+- ✅ Show test results in the PR/commit
+
+See the **Actions** tab in your GitHub repository to monitor deployments.
+
 ## Verification
 
 ### Check Logs

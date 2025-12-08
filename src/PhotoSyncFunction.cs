@@ -188,7 +188,7 @@ namespace PhotoSync
                     var photoStream = await DownloadPhotoAsync(sourceClient, photo.Id);
                     downloadStopwatch.Stop();
                     var fileSizeMB = photoStream.Length / (1024.0 * 1024.0);
-                    _logger.LogInformation($"Downloaded {photo.Name} ({fileSizeMB:F2} MB) in {downloadStopwatch.Elapsed.TotalSeconds:F2}s ({fileSizeMB / downloadStopwatch.Elapsed.TotalSeconds:F2} MB/s)");
+                    _logger.LogInformation($"Downloaded {photo.Name} ({fileSizeMB:F2} MB) in {downloadStopwatch.Elapsed.TotalSeconds:F2}s ({fileSizeMB / (downloadStopwatch.Elapsed.TotalSeconds + 0.001):F2} MB/s)");
 
                     // Extract date and generate new filename
                     var dateTaken = ExtractDateFromPhoto(photoStream, photo.Name);

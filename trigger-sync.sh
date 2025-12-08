@@ -51,36 +51,6 @@ echo "  - Source 2: $SOURCE2"
 echo ""
 
 # Cross-platform function to open URLs in the default browser
-open_url() {
-    local url="$1"
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        # macOS
-        open "$url"
-    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        # Linux
-        xdg-open "$url" 2>/dev/null
-    elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
-        # Windows (Git Bash, Cygwin, or native)
-        if command -v start &> /dev/null; then
-            start "$url" 2>/dev/null
-        elif command -v explorer.exe &> /dev/null; then
-            explorer.exe "$url" 2>/dev/null
-        else
-            echo "Could not open URL automatically. Please open manually: $url"
-        fi
-    else
-        # Fallback: try common commands
-        if command -v xdg-open &> /dev/null; then
-            xdg-open "$url" 2>/dev/null
-        elif command -v open &> /dev/null; then
-            open "$url"
-        elif command -v start &> /dev/null; then
-            start "$url" 2>/dev/null
-        else
-            echo "Could not open URL automatically. Please open manually: $url"
-        fi
-    fi
-}
 
 # Parse command line arguments
 TRIGGER_SOURCE1=true

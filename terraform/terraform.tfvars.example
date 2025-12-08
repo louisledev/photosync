@@ -51,7 +51,7 @@ onedrive2_config = {
   "OneDrive2:ClientId"               = "abc123-your-client-id-from-azure-portal"  # ← SAME Client ID as above
   "OneDrive2:RefreshTokenSecretName" = "source2-refresh-token"                     # ← Key Vault secret name (DO NOT change)
   "OneDrive2:ClientSecretName"       = "source2-client-secret"                     # ← Key Vault secret name (DO NOT change)
-  "OneDrive2:SourceFolder"           = "/Pictures"                                 # ← Wife's photos folder
+  "OneDrive2:SourceFolder"           = "/Wife's Photos"                            # ← Wife's photos folder
   "OneDrive2:DeleteAfterSync"        = "false"                                     # ← Keep source files after sync
   "OneDrive2:MaxFilesPerRun"         = "20"                                        # ← Max files to process per run (prevents timeout)
 }

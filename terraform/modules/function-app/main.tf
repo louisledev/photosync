@@ -44,6 +44,8 @@ resource "azurerm_linux_function_app" "function" {
       "AzureWebJobsFeatureFlags" = "EnableWorkerIndexing"
     },
     var.key_vault_url != "" ? {
+      # Double underscores are used here to represent colons in .NET configuration keys.
+      # This follows .NET conventions, as Terraform does not support colons in keys.
       "KeyVault__VaultUrl" = var.key_vault_url
     } : {},
     var.application_insights_connection_string != "" ? {

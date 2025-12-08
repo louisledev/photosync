@@ -67,6 +67,7 @@ jobs:
         with:
           name: function-app
           path: ${{ github.workspace }}/${{ env.OUTPUT_PATH }}
+          include-hidden-files: true
 
   deploy:
     runs-on: ubuntu-latest
@@ -89,8 +90,19 @@ jobs:
         run: |
           echo "Contents of downloaded artifact:"
           ls -la ${{ env.OUTPUT_PATH }}
+          echo ""
+          echo "Full directory tree:"
+          find ${{ env.OUTPUT_PATH }} -maxdepth 2 -ls || true
+          echo ""
           echo "Checking for .azurefunctions folder:"
-          ls -la ${{ env.OUTPUT_PATH }}/.azurefunctions || echo ".azurefunctions folder not found"
+          if [ -d "${{ env.OUTPUT_PATH }}/.azurefunctions" ]; then
+            echo "✓ .azurefunctions folder found"
+            ls -la ${{ env.OUTPUT_PATH }}/.azurefunctions
+          else
+            echo "✗ .azurefunctions folder not found"
+            echo "Looking for any .azurefunctions anywhere:"
+            find ${{ env.OUTPUT_PATH }} -name ".azurefunctions" -type d || true
+          fi
 
       - name: Login to Azure
         uses: azure/login@v2

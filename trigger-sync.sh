@@ -31,7 +31,13 @@ open_url() {
         xdg-open "$url" 2>/dev/null
     elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
         # Windows (Git Bash, Cygwin, or native)
-        start "$url" 2>/dev/null || explorer.exe "$url"
+        if command -v start &> /dev/null; then
+            start "$url" 2>/dev/null
+        elif command -v explorer.exe &> /dev/null; then
+            explorer.exe "$url" 2>/dev/null
+        else
+            echo "Could not open URL automatically. Please open manually: $url"
+        fi
     else
         # Fallback: try common commands
         if command -v xdg-open &> /dev/null; then

@@ -127,7 +127,7 @@ graph TB
 - **Application Insights**: Centralized monitoring and logging for both apps
 - **Optional Source Deletion**: Configurable per Function App to delete source files after successful upload (prevents duplication)
 
-See [ARCHITECTURE_CHANGES.md](ARCHITECTURE_CHANGES.md) for details on the migration and benefits.
+See [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) for details on the architecture and benefits.
 
 ## Prerequisites
 
@@ -220,20 +220,26 @@ key_vault_name  = "photosync-kv-UNIQUE"  # Must be globally unique
 # Use the same client ID for all accounts
 # Note: Tenant is always "common" for personal accounts (hardcoded in auth provider)
 onedrive1_config = {
-  "OneDrive1:ClientId"        = "your-client-id"
-  "OneDrive1:SourceFolder"    = "/Photos"
-  "OneDrive1:DeleteAfterSync" = "false"
+  "OneDrive1:ClientId"               = "your-client-id"
+  "OneDrive1:RefreshTokenSecretName" = "source1-refresh-token"
+  "OneDrive1:ClientSecretName"       = "source1-client-secret"
+  "OneDrive1:SourceFolder"           = "/Photos"
+  "OneDrive1:DeleteAfterSync"        = "false"
 }
 
 onedrive2_config = {
-  "OneDrive2:ClientId"        = "your-client-id"  # Same as above
-  "OneDrive2:SourceFolder"    = "/Pictures"
-  "OneDrive2:DeleteAfterSync" = "false"
+  "OneDrive2:ClientId"               = "your-client-id"  # Same as above
+  "OneDrive2:RefreshTokenSecretName" = "source2-refresh-token"
+  "OneDrive2:ClientSecretName"       = "source2-client-secret"
+  "OneDrive2:SourceFolder"           = "/Pictures"
+  "OneDrive2:DeleteAfterSync"        = "false"
 }
 
 onedrive_destination_config = {
-  "OneDriveDestination:ClientId"          = "your-client-id"  # Same as above
-  "OneDriveDestination:DestinationFolder" = "/Synced Photos"
+  "OneDriveDestination:ClientId"               = "your-client-id"  # Same as above
+  "OneDriveDestination:RefreshTokenSecretName" = "destination-refresh-token"
+  "OneDriveDestination:ClientSecretName"       = "destination-client-secret"
+  "OneDriveDestination:DestinationFolder"      = "/Synced Photos"
 }
 
 # Store refresh tokens from Step 2
@@ -543,7 +549,7 @@ module "function_app_source3" {
 2. Deploy the new Function App and publish code to it
 3. Each Function App runs independently with complete isolation
 
-See [ARCHITECTURE_CHANGES.md](ARCHITECTURE_CHANGES.md) for more details on the modular architecture.
+See [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) for more details on the modular architecture.
 
 ### Add NAS Sync
 

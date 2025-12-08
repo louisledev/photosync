@@ -56,23 +56,26 @@ key_vault_name  = "photosync-kv-UNIQUE"  # Must be globally unique
 # OneDrive configuration (using ONE app registration for all accounts)
 # Note: Tenant is always "common" for personal accounts (hardcoded in auth provider)
 onedrive1_config = {
-  "OneDrive1:ClientId"        = "your-client-id"
-  "OneDrive1:ClientSecret"    = "source1-refresh-token"  # Key Vault secret name
-  "OneDrive1:SourceFolder"    = "Pictures/CameraRoll"
-  "OneDrive1:DeleteAfterSync" = "false"
+  "OneDrive1:ClientId"               = "your-client-id"
+  "OneDrive1:RefreshTokenSecretName" = "source1-refresh-token"
+  "OneDrive1:ClientSecretName"       = "source1-client-secret"
+  "OneDrive1:SourceFolder"           = "Pictures/CameraRoll"
+  "OneDrive1:DeleteAfterSync"        = "false"
 }
 
 onedrive2_config = {
-  "OneDrive2:ClientId"        = "your-client-id"  # Same as above
-  "OneDrive2:ClientSecret"    = "source2-refresh-token"  # Key Vault secret name
-  "OneDrive2:SourceFolder"    = "Pictures/CameraRoll"
-  "OneDrive2:DeleteAfterSync" = "false"
+  "OneDrive2:ClientId"               = "your-client-id"  # Same as above
+  "OneDrive2:RefreshTokenSecretName" = "source2-refresh-token"
+  "OneDrive2:ClientSecretName"       = "source2-client-secret"
+  "OneDrive2:SourceFolder"           = "Pictures/CameraRoll"
+  "OneDrive2:DeleteAfterSync"        = "false"
 }
 
 onedrive_destination_config = {
-  "OneDriveDestination:ClientId"     = "your-client-id"  # Same as above
-  "OneDriveDestination:ClientSecret" = "destination-refresh-token"  # Key Vault secret name
-  "OneDriveDestination:DestinationFolder" = "Pictures/FamilyPhotos"
+  "OneDriveDestination:ClientId"               = "your-client-id"  # Same as above
+  "OneDriveDestination:RefreshTokenSecretName" = "destination-refresh-token"
+  "OneDriveDestination:ClientSecretName"       = "destination-client-secret"
+  "OneDriveDestination:DestinationFolder"      = "Pictures/FamilyPhotos"
 }
 
 # Store refresh tokens (from step 2)

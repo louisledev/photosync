@@ -33,8 +33,7 @@ Welcome! This project automates syncing family photos from multiple OneDrive acc
 ### Must Read
 - **QUICKSTART.md** - ⚠️ START HERE for a 30-minute setup guide
 - **PERSONAL_ACCOUNTS_SETUP.md** - Detailed documentation for personal Microsoft accounts
-- **ARCHITECTURE_CHANGES.md** - Understand the two Function App design
-- **PROJECT_OVERVIEW.md** - Architecture overview and benefits
+- **PROJECT_OVERVIEW.md** - Architecture overview and two Function App design
 - **terraform/** - Infrastructure deployment (Terraform)
 
 ### Reference Documentation
@@ -151,7 +150,7 @@ A: This project is designed specifically for personal Microsoft accounts using r
 A: No, it tracks processed files in Azure Table Storage and uses OneDrive's auto-rename feature
 
 **Q: Can I add more source accounts?**
-A: Yes! Deploy additional Function Apps using the Terraform module. See [ARCHITECTURE_CHANGES.md](ARCHITECTURE_CHANGES.md)
+A: Yes! Deploy additional Function Apps using the Terraform module. See [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)
 
 **Q: Why two separate Function Apps?**
 A: Complete isolation, independent scaling, better security. Each app only has credentials for its source account.
@@ -178,8 +177,7 @@ A: By date in folders like `2025/2025-12/` with filenames like `20231225_143022.
 ```
 PhotoSync/
 ├── START_HERE.md              ← You are here!
-├── ARCHITECTURE_CHANGES.md    ← Two Function App design explained
-├── PROJECT_OVERVIEW.md        ← Architecture overview
+├── PROJECT_OVERVIEW.md        ← Architecture overview and two Function App design
 ├── README.md                  ← Complete documentation
 ├── QUICKSTART.md              ← Local development setup
 │
@@ -230,7 +228,7 @@ After setup, you should see:
 
 1. **Quick Start**: Follow [QUICKSTART.md](QUICKSTART.md) for step-by-step setup (30 minutes)
 2. **Detailed Docs**: Read [PERSONAL_ACCOUNTS_SETUP.md](PERSONAL_ACCOUNTS_SETUP.md) for comprehensive documentation
-3. **Architecture**: See [ARCHITECTURE_CHANGES.md](ARCHITECTURE_CHANGES.md) to understand the two Function App design
+3. **Architecture**: See [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) to understand the two Function App design
 4. **CI/CD**: See [.github/DEPLOYMENT.md](.github/DEPLOYMENT.md) for automated deployments (optional)
 
 ---

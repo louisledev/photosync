@@ -14,6 +14,7 @@
       "Microsoft.Hosting.Lifetime": "Information"
     }
   },
+  "_comment_functionTimeout": "10 minutes is the maximum allowed for Azure Functions Consumption Plan (Y1). See README Performance Limitations section for details.",
   "functionTimeout": "00:10:00",
   "extensions": {
     "http": {

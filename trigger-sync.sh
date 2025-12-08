@@ -20,6 +20,38 @@ echo "  - Source 1: $SOURCE1"
 echo "  - Source 2: $SOURCE2"
 echo ""
 
+# Cross-platform function to open URLs in the default browser
+open_url() {
+    local url="$1"
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        open "$url"
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        # Linux
+        xdg-open "$url" 2>/dev/null
+    elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
+        # Windows (Git Bash, Cygwin, or native)
+        if command -v start &> /dev/null; then
+            start "$url" 2>/dev/null
+        elif command -v explorer.exe &> /dev/null; then
+            explorer.exe "$url" 2>/dev/null
+        else
+            echo "Could not open URL automatically. Please open manually: $url"
+        fi
+    else
+        # Fallback: try common commands
+        if command -v xdg-open &> /dev/null; then
+            xdg-open "$url" 2>/dev/null
+        elif command -v open &> /dev/null; then
+            open "$url"
+        elif command -v start &> /dev/null; then
+            start "$url" 2>/dev/null
+        else
+            echo "Could not open URL automatically. Please open manually: $url"
+        fi
+    fi
+}
+
 # Parse command line arguments
 TRIGGER_SOURCE1=true
 TRIGGER_SOURCE2=true
@@ -143,15 +175,15 @@ if [ "$SHOW_LOGS" = true ]; then
 
     if [ ! -z "$LOGS_URL" ]; then
         echo "Opening Application Insights..."
-        open "$LOGS_URL"
+        open_url "$LOGS_URL"
     else
         echo "Application Insights not found. Opening Function App logs instead..."
         if [ "$TRIGGER_SOURCE1" = true ] && [ "$TRIGGER_SOURCE2" = false ]; then
-            open "https://portal.azure.com/#@/resource/subscriptions/$(az account show --query id -o tsv)/resourceGroups/PhotoSyncRG/providers/Microsoft.Web/sites/$SOURCE1/appServices"
+            open_url "https://portal.azure.com/#@/resource/subscriptions/$(az account show --query id -o tsv)/resourceGroups/PhotoSyncRG/providers/Microsoft.Web/sites/$SOURCE1/appServices"
         elif [ "$TRIGGER_SOURCE2" = true ] && [ "$TRIGGER_SOURCE1" = false ]; then
-            open "https://portal.azure.com/#@/resource/subscriptions/$(az account show --query id -o tsv)/resourceGroups/PhotoSyncRG/providers/Microsoft.Web/sites/$SOURCE2/appServices"
+            open_url "https://portal.azure.com/#@/resource/subscriptions/$(az account show --query id -o tsv)/resourceGroups/PhotoSyncRG/providers/Microsoft.Web/sites/$SOURCE2/appServices"
         else
-            open "https://portal.azure.com/#@/resource/subscriptions/$(az account show --query id -o tsv)/resourceGroups/PhotoSyncRG/providers/Microsoft.Web/sites/$SOURCE1/appServices"
+            open_url "https://portal.azure.com/#@/resource/subscriptions/$(az account show --query id -o tsv)/resourceGroups/PhotoSyncRG/providers/Microsoft.Web/sites/$SOURCE1/appServices"
         fi
     fi
 fi

@@ -3,6 +3,37 @@
 echo "=== PhotoSync Manual Trigger Script ==="
 echo ""
 
+# Function to open URLs in a cross-platform way
+open_url() {
+    local url="$1"
+    
+    # Detect the platform and use appropriate command
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        open "$url"
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        # Linux
+        if command -v xdg-open &> /dev/null; then
+            xdg-open "$url"
+        else
+            echo "Warning: xdg-open not found. Please install xdg-utils or open the URL manually:"
+            echo "$url"
+        fi
+    elif [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "win32" ]]; then
+        # Windows (Git Bash, Cygwin, or native)
+        start "$url"
+    else
+        # WSL or unknown platform
+        if grep -qi microsoft /proc/version 2>/dev/null; then
+            # WSL
+            cmd.exe /c start "$url"
+        else
+            echo "Warning: Unknown platform. Please open the URL manually:"
+            echo "$url"
+        fi
+    fi
+}
+
 # Get Function App names from Terraform
 cd terraform
 SOURCE1=$(terraform output -raw function_app_source1_name 2>/dev/null)
@@ -143,15 +174,15 @@ if [ "$SHOW_LOGS" = true ]; then
 
     if [ ! -z "$LOGS_URL" ]; then
         echo "Opening Application Insights..."
-        open "$LOGS_URL"
+        open_url "$LOGS_URL"
     else
         echo "Application Insights not found. Opening Function App logs instead..."
         if [ "$TRIGGER_SOURCE1" = true ] && [ "$TRIGGER_SOURCE2" = false ]; then
-            open "https://portal.azure.com/#@/resource/subscriptions/$(az account show --query id -o tsv)/resourceGroups/PhotoSyncRG/providers/Microsoft.Web/sites/$SOURCE1/appServices"
+            open_url "https://portal.azure.com/#@/resource/subscriptions/$(az account show --query id -o tsv)/resourceGroups/PhotoSyncRG/providers/Microsoft.Web/sites/$SOURCE1/appServices"
         elif [ "$TRIGGER_SOURCE2" = true ] && [ "$TRIGGER_SOURCE1" = false ]; then
-            open "https://portal.azure.com/#@/resource/subscriptions/$(az account show --query id -o tsv)/resourceGroups/PhotoSyncRG/providers/Microsoft.Web/sites/$SOURCE2/appServices"
+            open_url "https://portal.azure.com/#@/resource/subscriptions/$(az account show --query id -o tsv)/resourceGroups/PhotoSyncRG/providers/Microsoft.Web/sites/$SOURCE2/appServices"
         else
-            open "https://portal.azure.com/#@/resource/subscriptions/$(az account show --query id -o tsv)/resourceGroups/PhotoSyncRG/providers/Microsoft.Web/sites/$SOURCE1/appServices"
+            open_url "https://portal.azure.com/#@/resource/subscriptions/$(az account show --query id -o tsv)/resourceGroups/PhotoSyncRG/providers/Microsoft.Web/sites/$SOURCE1/appServices"
         fi
     fi
 fi

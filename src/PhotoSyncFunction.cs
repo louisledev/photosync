@@ -480,8 +480,10 @@ namespace PhotoSync
             }
 
             var maxChunkSize = 320 * 1024; // 320 KB
-            // Note: This constructor is marked obsolete but the recommended IUploadSession approach
-            // is not yet well-documented. This approach works correctly for large file uploads.
+            // Note: The constructor 'Microsoft.Graph.LargeFileUploadTask<DriveItem>(UploadSession, Stream, int, IRequestAdapter)'
+            // is marked obsolete (CS0618). The recommended alternative is to use the IUploadSession-based approach,
+            // but as of June 2024, official documentation is lacking and migration guidance is unclear.
+            // See: https://github.com/microsoftgraph/msgraph-sdk-dotnet/issues/1862 for tracking migration.
             #pragma warning disable CS0618
             var fileUploadTask = new Microsoft.Graph.LargeFileUploadTask<DriveItem>(
                 uploadSession,

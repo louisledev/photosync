@@ -3,6 +3,36 @@
 echo "=== PhotoSync Manual Trigger Script ==="
 echo ""
 
+# Function to open URLs in a cross-platform way
+open_url() {
+    local url="$1"
+    
+    # Detect the platform and use appropriate command
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        open "$url"
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        # Check if running under WSL
+        if [[ -n "$WSL_DISTRO_NAME" ]] || grep -qi microsoft /proc/version 2>/dev/null || [[ -d /mnt/c ]]; then
+            # WSL
+            cmd.exe /c start "" "$url"
+        elif command -v xdg-open &> /dev/null; then
+            # Linux
+            xdg-open "$url"
+        else
+            echo "Warning: xdg-open not found. Please install xdg-utils or open the URL manually:"
+            echo "$url"
+        fi
+    elif [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "win32" ]]; then
+        # Windows (Git Bash, Cygwin, or native)
+        cmd.exe /c start "" "$url"
+    else
+        # Unknown platform
+        echo "Warning: Unknown platform. Please open the URL manually:"
+        echo "$url"
+    fi
+}
+
 # Get Function App names from Terraform
 cd terraform
 SOURCE1=$(terraform output -raw function_app_source1_name 2>/dev/null)

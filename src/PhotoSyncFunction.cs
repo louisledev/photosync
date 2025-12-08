@@ -211,7 +211,7 @@ namespace PhotoSync
                         photoStream,
                         dateTaken);
                     uploadStopwatch.Stop();
-                    _logger.LogInformation($"Uploaded {newFileName} ({fileSizeMB:F2} MB) in {uploadStopwatch.Elapsed.TotalSeconds:F2}s ({fileSizeMB / uploadStopwatch.Elapsed.TotalSeconds:F2} MB/s)");
+                    _logger.LogInformation($"Uploaded {newFileName} ({fileSizeMB:F2} MB) in {uploadStopwatch.Elapsed.TotalSeconds:F2}s ({fileSizeMB / (uploadStopwatch.Elapsed.TotalSeconds + 0.001):F2} MB/s)");
 
                     newFiles.Add(fileId);
                     processedCount++;

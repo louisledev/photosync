@@ -21,12 +21,12 @@ open_url() {
         fi
     elif [[ "$OSTYPE" == "msys" ]] || [[ "$OSTYPE" == "cygwin" ]] || [[ "$OSTYPE" == "win32" ]]; then
         # Windows (Git Bash, Cygwin, or native)
-        start "$url"
+        cmd.exe /c start "" "$url"
     else
         # WSL or unknown platform
         if grep -qi microsoft /proc/version 2>/dev/null; then
             # WSL
-            cmd.exe /c start "$url"
+            cmd.exe /c start "" "$url"
         else
             echo "Warning: Unknown platform. Please open the URL manually:"
             echo "$url"

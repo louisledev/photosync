@@ -12,8 +12,12 @@ open_url() {
         # macOS
         open "$url"
     elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        # Linux
-        if command -v xdg-open &> /dev/null; then
+        # Check if running under WSL
+        if grep -qi microsoft /proc/version 2>/dev/null || [[ -d /mnt/c ]]; then
+            # WSL
+            cmd.exe /c start "" "$url"
+        elif command -v xdg-open &> /dev/null; then
+            # Linux
             xdg-open "$url"
         else
             echo "Warning: xdg-open not found. Please install xdg-utils or open the URL manually:"
@@ -23,14 +27,9 @@ open_url() {
         # Windows (Git Bash, Cygwin, or native)
         cmd.exe /c start "" "$url"
     else
-        # WSL or unknown platform
-        if grep -qi microsoft /proc/version 2>/dev/null; then
-            # WSL
-            cmd.exe /c start "" "$url"
-        else
-            echo "Warning: Unknown platform. Please open the URL manually:"
-            echo "$url"
-        fi
+        # Unknown platform
+        echo "Warning: Unknown platform. Please open the URL manually:"
+        echo "$url"
     fi
 }
 

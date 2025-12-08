@@ -480,16 +480,21 @@ namespace PhotoSync
                 .PostAsync(uploadSessionRequest);
 
             // Use LargeFileUploadTask for all file sizes
-            if (uploadSession is null)
+            if (uploadSession is null || string.IsNullOrEmpty(uploadSession.UploadUrl))
             {
                 throw new InvalidOperationException("Failed to create upload session");
             }
 
             var maxChunkSize = 320 * 1024; // 320 KB
+            // Note: This constructor is marked obsolete but the recommended IUploadSession approach
+            // is not yet well-documented. This approach works correctly for large file uploads.
+            #pragma warning disable CS0618
             var fileUploadTask = new Microsoft.Graph.LargeFileUploadTask<DriveItem>(
                 uploadSession,
                 photoStream,
-                maxChunkSize);
+                maxChunkSize,
+                client.RequestAdapter);
+            #pragma warning restore CS0618
 
             await fileUploadTask.UploadAsync();
         }

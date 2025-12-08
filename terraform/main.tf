@@ -19,6 +19,15 @@ resource "azurerm_resource_group" "photosync" {
   location = var.location
 }
 
+# Application Insights for monitoring
+module "application_insights" {
+  source = "./modules/application-insights"
+
+  application_insights_name = "${var.function_app_name_prefix}-insights"
+  resource_group_name       = azurerm_resource_group.photosync.name
+  location                  = azurerm_resource_group.photosync.location
+}
+
 # Function App for OneDrive Source 1
 module "function_app_source1" {
   source = "./modules/function-app"
@@ -27,6 +36,12 @@ module "function_app_source1" {
   storage_account_name = "${var.storage_account_name_prefix}src1"
   resource_group_name  = azurerm_resource_group.photosync.name
   location             = azurerm_resource_group.photosync.location
+
+  # Pass Key Vault URL if Key Vault is enabled
+  key_vault_url = var.enable_keyvault ? module.keyvault[0].key_vault_uri : ""
+
+  # Pass Application Insights connection string
+  application_insights_connection_string = module.application_insights.connection_string
 
   # Rename OneDrive1 config to OneDriveSource for this Function App
   # Replace colons with double underscores for Azure App Settings
@@ -49,6 +64,12 @@ module "function_app_source2" {
   storage_account_name = "${var.storage_account_name_prefix}src2"
   resource_group_name  = azurerm_resource_group.photosync.name
   location             = azurerm_resource_group.photosync.location
+
+  # Pass Key Vault URL if Key Vault is enabled
+  key_vault_url = var.enable_keyvault ? module.keyvault[0].key_vault_uri : ""
+
+  # Pass Application Insights connection string
+  application_insights_connection_string = module.application_insights.connection_string
 
   # Rename OneDrive2 config to OneDriveSource for this Function App
   # Replace colons with double underscores for Azure App Settings

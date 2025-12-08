@@ -87,7 +87,8 @@ After obtaining the refresh token:
        "UseRefreshTokenAuth=true" \
        "KeyVault:VaultUrl=https://your-vault-name.vault.azure.net/" \
        "OneDriveSource:ClientId=your-client-id" \
-       "OneDriveSource:ClientSecret=source1-refresh-token" # Key name, not actual token
+       "OneDriveSource:RefreshTokenSecretName=source1-refresh-token" \
+       "OneDriveSource:ClientSecretName=source1-client-secret"
    ```
 
 3. **Enable Managed Identity:**

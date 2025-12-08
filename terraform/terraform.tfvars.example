@@ -1,39 +1,97 @@
-# Azure Photo Sync - Terraform Variables Example
+# Azure Photo Sync - Terraform Variables Example (Personal Accounts)
 # Copy this file to terraform.tfvars and fill in your values
 #
-# NOTE: Configuration keys use colons (:) in this file for readability.
-# Terraform will automatically convert them to double underscores (__)
-# for Azure App Settings, which .NET will read correctly.
+# For personal Microsoft accounts, you need ONE app registration with refresh tokens.
+# See QUICKSTART.md for step-by-step instructions.
 
+# ============================================================================
+# Azure Infrastructure Settings
+# ============================================================================
 resource_group_name           = "PhotoSyncRG"
 function_app_name_prefix      = "photosync"
 storage_account_name_prefix   = "photosync"
 location                      = "westeurope"
 
-# OneDrive 1 Configuration
-# These will be renamed to OneDriveSource:* in Function App 1
+# ============================================================================
+# Azure Key Vault (Required for Personal Accounts)
+# ============================================================================
+enable_keyvault = true
+key_vault_name  = "photosync-kv-UNIQUE"  # CHANGE THIS - must be globally unique!
+
+# ============================================================================
+# Azure AD App Registration (ONE app for all accounts)
+# ============================================================================
+# You created ONE app registration in Azure Portal with:
+# - Supported account types: "Accounts in any organizational directory and personal Microsoft accounts"
+# - Redirect URI: http://localhost:8080/callback
+# - Delegated permissions: Files.Read, Files.ReadWrite, offline_access
+#
+# Get your Client ID and Client Secret from Azure Portal, then paste them below.
+# You'll use the SAME Client ID for all three accounts.
+#
+# Note: The tenant is always "common" for personal Microsoft accounts and is
+# hardcoded in the authentication provider, so you don't need to configure it.
+
+# ============================================================================
+# Source Account 1 (Your Personal Account)
+# ============================================================================
 onedrive1_config = {
-  "OneDrive1:ClientId"     = "your-client-id-1"
-  "OneDrive1:TenantId"     = "your-tenant-id-1"
-  "OneDrive1:ClientSecret" = "your-client-secret-1"
-  "OneDrive1:SourceFolder" = "/Photos"
+  "OneDrive1:ClientId"               = "abc123-your-client-id-from-azure-portal"  # ← Paste your Client ID
+  "OneDrive1:RefreshTokenSecretName" = "source1-refresh-token"                     # ← Key Vault secret name (DO NOT change)
+  "OneDrive1:ClientSecretName"       = "source1-client-secret"                     # ← Key Vault secret name (DO NOT change)
+  "OneDrive1:SourceFolder"           = "/Photos"                                   # ← Your photos folder
+  "OneDrive1:DeleteAfterSync"        = "false"                                     # ← Keep source files after sync
+  "OneDrive1:MaxFilesPerRun"         = "20"                                        # ← Max files to process per run (prevents timeout)
 }
 
-# OneDrive 2 Configuration
-# These will be renamed to OneDriveSource:* in Function App 2
+# ============================================================================
+# Source Account 2 (Wife's Personal Account)
+# ============================================================================
 onedrive2_config = {
-  "OneDrive2:ClientId"     = "your-client-id-2"
-  "OneDrive2:TenantId"     = "your-tenant-id-2"
-  "OneDrive2:ClientSecret" = "your-client-secret-2"
-  "OneDrive2:SourceFolder" = "/Pictures"
+  "OneDrive2:ClientId"               = "abc123-your-client-id-from-azure-portal"  # ← SAME Client ID as above
+  "OneDrive2:RefreshTokenSecretName" = "source2-refresh-token"                     # ← Key Vault secret name (DO NOT change)
+  "OneDrive2:ClientSecretName"       = "source2-client-secret"                     # ← Key Vault secret name (DO NOT change)
+  "OneDrive2:SourceFolder"           = "/Wife's Photos"                            # ← Wife's photos folder
+  "OneDrive2:DeleteAfterSync"        = "false"                                     # ← Keep source files after sync
+  "OneDrive2:MaxFilesPerRun"         = "20"                                        # ← Max files to process per run (prevents timeout)
 }
 
-# OneDrive Destination Configuration
-# Used by both Function Apps
+# ============================================================================
+# Destination Account (Shared Family Account)
+# ============================================================================
 onedrive_destination_config = {
-  "OneDriveDestination:ClientId"          = "your-destination-client-id"
-  "OneDriveDestination:TenantId"          = "your-destination-tenant-id"
-  "OneDriveDestination:ClientSecret"      = "your-destination-client-secret"
-  "OneDriveDestination:DestinationFolder" = "/Synced Photos"
+  "OneDriveDestination:ClientId"               = "abc123-your-client-id-from-azure-portal"  # ← SAME Client ID as above
+  "OneDriveDestination:RefreshTokenSecretName" = "destination-refresh-token"                 # ← Key Vault secret name (DO NOT change)
+  "OneDriveDestination:ClientSecretName"       = "destination-client-secret"                 # ← Key Vault secret name (DO NOT change)
+  "OneDriveDestination:DestinationFolder"      = "/Synced Photos"                            # ← Destination folder
 }
+
+# ============================================================================
+# Refresh Tokens (Get these using: tools/get-refresh-token.js)
+# ============================================================================
+# Run this command 3 times (once per account):
+#   cd tools
+#   node get-refresh-token.js YOUR_CLIENT_ID YOUR_CLIENT_SECRET
+#
+# Each time:
+# 1. Browser opens → sign in with ONE of your accounts
+# 2. Grant permissions
+# 3. Copy the refresh token from terminal
+# 4. Paste it below
+#
+# NOTE: Each account gets a DIFFERENT refresh token (they're user-specific)
+
+source1_refresh_token     = "0.AXEA...your-refresh-token-here"      # ← Your account token
+source2_refresh_token     = "0.AXEA...wife-refresh-token-here"      # ← Wife's account token
+destination_refresh_token = "0.AXEA...shared-refresh-token-here"    # ← Destination account token
+
+# ============================================================================
+# Client Secret for Key Vault (SAME for All Accounts)
+# ============================================================================
+# This is the same client secret you created in Azure Portal.
+# It gets stored in Key Vault for the refresh token exchange.
+
+source1_client_secret_for_vault      = "xyz789-your-client-secret-from-azure-portal"  # ← Your client secret
+source2_client_secret_for_vault      = "xyz789-your-client-secret-from-azure-portal"  # ← SAME as above
+destination_client_secret_for_vault  = "xyz789-your-client-secret-from-azure-portal"  # ← SAME as above
 

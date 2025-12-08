@@ -51,6 +51,31 @@ namespace PhotoSync
             request.Headers.Add("Authorization", $"Bearer {accessToken}");
         }
 
+        /// <summary>
+        /// Validates that the refresh token is still valid by attempting to get an access token
+        /// </summary>
+        /// <returns>True if token is valid, false otherwise</returns>
+        public async Task<(bool IsValid, string? ErrorMessage)> ValidateRefreshTokenAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                await GetAccessTokenAsync(cancellationToken);
+                return (true, null);
+            }
+            catch (HttpRequestException ex)
+            {
+                if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    return (false, "Refresh token is invalid or expired. Please regenerate the refresh token using tools/get-refresh-token.js");
+                }
+                return (false, $"Failed to validate refresh token: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Failed to validate refresh token: {ex.Message}");
+            }
+        }
+
         private async Task<string> GetAccessTokenAsync(CancellationToken cancellationToken)
         {
             // Return cached token if still valid (with 5 minute buffer)
@@ -83,7 +108,15 @@ namespace PhotoSync
                 });
 
                 var response = await _httpClient.PostAsync(tokenUrl, requestBody, cancellationToken);
-                response.EnsureSuccessStatusCode();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                    throw new HttpRequestException(
+                        $"Token refresh failed with status {response.StatusCode}: {errorContent}",
+                        null,
+                        response.StatusCode);
+                }
 
                 var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
                 var tokenResponse = JsonSerializer.Deserialize<TokenResponse>(responseContent);

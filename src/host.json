@@ -3,17 +3,19 @@
   "logging": {
     "applicationInsights": {
       "samplingSettings": {
-        "isEnabled": true,
-        "maxTelemetryItemsPerSecond": 20
-      }
+        "isEnabled": false
+      },
+      "enableLiveMetricsFilters": true
     },
     "logLevel": {
       "default": "Information",
+      "PhotoSync": "Information",
       "Microsoft": "Warning",
       "Microsoft.Hosting.Lifetime": "Information"
     }
   },
-  "functionTimeout": "00:30:00",
+  "_comment_functionTimeout": "10 minutes is the maximum allowed for Azure Functions Consumption Plan (Y1). See README Performance Limitations section for details.",
+  "functionTimeout": "00:10:00",
   "extensions": {
     "http": {
       "routePrefix": "api"

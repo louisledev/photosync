@@ -10,7 +10,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
 using Microsoft.Graph.Drives.Item.Items.Item.CreateUploadSession;
-using Azure.Identity;
 using MetadataExtractor;
 using MetadataExtractor.Formats.Exif;
 
@@ -37,7 +36,7 @@ namespace PhotoSync
         }
 
         [Function("PhotoSyncTimer")]
-        public async Task Run([TimerTrigger("0 0 2 * * *")] TimerInfo myTimer)
+        public async Task Run([TimerTrigger("0 0 * * * *")] TimerInfo myTimer)
         {
             _logger.LogInformation($"Photo sync function started at: {DateTime.UtcNow}");
 
@@ -91,36 +90,71 @@ namespace PhotoSync
             var sourceConfig = new
             {
                 ClientId = _configuration["OneDriveSource:ClientId"],
-                TenantId = _configuration["OneDriveSource:TenantId"],
-                ClientSecret = _configuration["OneDriveSource:ClientSecret"],
+                RefreshTokenSecretName = _configuration["OneDriveSource:RefreshTokenSecretName"],
+                ClientSecretName = _configuration["OneDriveSource:ClientSecretName"],
                 SourceFolder = _configuration["OneDriveSource:SourceFolder"],
-                DeleteAfterSync = bool.TryParse(_configuration["OneDriveSource:DeleteAfterSync"], out var delete) && delete
+                DeleteAfterSync = bool.TryParse(_configuration["OneDriveSource:DeleteAfterSync"], out var delete) && delete,
+                MaxFilesPerRun = int.TryParse(_configuration["OneDriveSource:MaxFilesPerRun"], out var maxFiles) && maxFiles > 0 ? maxFiles : int.MaxValue
             };
 
             var destinationConfig = new
             {
                 ClientId = _configuration["OneDriveDestination:ClientId"],
-                TenantId = _configuration["OneDriveDestination:TenantId"],
-                ClientSecret = _configuration["OneDriveDestination:ClientSecret"],
+                RefreshTokenSecretName = _configuration["OneDriveDestination:RefreshTokenSecretName"],
+                ClientSecretName = _configuration["OneDriveDestination:ClientSecretName"],
                 DestinationFolder = _configuration["OneDriveDestination:DestinationFolder"]
             };
 
             _logger.LogInformation($"Processing source account with client ID: {sourceConfig.ClientId}");
+            _logger.LogInformation($"Max files per run: {(sourceConfig.MaxFilesPerRun == int.MaxValue ? "unlimited" : sourceConfig.MaxFilesPerRun.ToString())}");
+
+            // Validate refresh tokens before starting sync
+            _logger.LogInformation("Validating refresh tokens...");
+
+            var sourceValidation = await _graphClientFactory.ValidateRefreshTokenAsync(
+                sourceConfig.ClientId,
+                sourceConfig.RefreshTokenSecretName,
+                sourceConfig.ClientSecretName);
+
+            if (!sourceValidation.IsValid)
+            {
+                _logger.LogWarning($"Source account refresh token is invalid: {sourceValidation.ErrorMessage}");
+                throw new InvalidOperationException($"Source account refresh token validation failed: {sourceValidation.ErrorMessage}");
+            }
+
+            var destinationValidation = await _graphClientFactory.ValidateRefreshTokenAsync(
+                destinationConfig.ClientId,
+                destinationConfig.RefreshTokenSecretName,
+                destinationConfig.ClientSecretName);
+
+            if (!destinationValidation.IsValid)
+            {
+                _logger.LogWarning($"Destination account refresh token is invalid: {destinationValidation.ErrorMessage}");
+                throw new InvalidOperationException($"Destination account refresh token validation failed: {destinationValidation.ErrorMessage}");
+            }
+
+            _logger.LogInformation("All refresh tokens validated successfully");
 
             var sourceClient = CreateGraphClient(
                 sourceConfig.ClientId,
-                sourceConfig.TenantId,
-                sourceConfig.ClientSecret);
+                sourceConfig.RefreshTokenSecretName,
+                sourceConfig.ClientSecretName);
 
             var destinationClient = CreateGraphClient(
                 destinationConfig.ClientId,
-                destinationConfig.TenantId,
-                destinationConfig.ClientSecret);
+                destinationConfig.RefreshTokenSecretName,
+                destinationConfig.ClientSecretName);
 
             var newFiles = new List<string>();
+            var processedCount = 0;
 
             // Get new photos from source
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             var photos = await GetPhotosFromFolderAsync(sourceClient, sourceConfig.SourceFolder);
+            stopwatch.Stop();
+
+            _logger.LogInformation($"GetPhotosFromFolderAsync completed in {stopwatch.Elapsed.TotalSeconds:F2} seconds");
+            _logger.LogInformation($"Found {photos.Count} total files, processing up to {sourceConfig.MaxFilesPerRun} new files");
 
             foreach (var photo in photos)
             {
@@ -132,8 +166,22 @@ namespace PhotoSync
                     continue;
                 }
 
+                // Check if we've reached the max files per run limit
+                if (processedCount >= sourceConfig.MaxFilesPerRun)
+                {
+                    _logger.LogInformation($"Reached max files per run limit ({sourceConfig.MaxFilesPerRun}). Remaining files will be processed in the next run.");
+                    break;
+                }
+
                 try
                 {
+                    // Validate required properties
+                    if (string.IsNullOrEmpty(photo.Id) || string.IsNullOrEmpty(photo.Name))
+                    {
+                        _logger.LogWarning($"Skipping file with missing ID or Name");
+                        continue;
+                    }
+
                     // Download photo
                     var photoStream = await DownloadPhotoAsync(sourceClient, photo.Id);
 
@@ -158,12 +206,13 @@ namespace PhotoSync
                         dateTaken);
 
                     newFiles.Add(fileId);
+                    processedCount++;
 
                     // Log with folder path if date is available
                     var logPath = dateTaken.HasValue
                         ? $"{dateTaken.Value:yyyy}/{dateTaken.Value:yyyy-MM}/{newFileName}"
                         : newFileName;
-                    _logger.LogInformation($"Successfully synced: {photo.Name} -> {logPath}");
+                    _logger.LogInformation($"Successfully synced ({processedCount}/{(sourceConfig.MaxFilesPerRun == int.MaxValue ? "unlimited" : sourceConfig.MaxFilesPerRun.ToString())}): {photo.Name} -> {logPath}");
 
                     // Delete source file if configured to do so
                     if (sourceConfig.DeleteAfterSync)
@@ -182,12 +231,17 @@ namespace PhotoSync
             if (newFiles.Any())
             {
                 await _stateManager.SaveProcessedFilesAsync(processedFiles.Concat(newFiles).ToList());
+                _logger.LogInformation($"Sync completed. Processed {processedCount} files in this run.");
+            }
+            else
+            {
+                _logger.LogInformation("No new files to process.");
             }
         }
 
-        private GraphServiceClient CreateGraphClient(string clientId, string tenantId, string clientSecret)
+        private GraphServiceClient CreateGraphClient(string clientId, string refreshTokenSecretName, string clientSecretName)
         {
-            return _graphClientFactory.CreateClient(clientId, tenantId, clientSecret);
+            return _graphClientFactory.CreateClient(clientId, refreshTokenSecretName, clientSecretName);
         }
 
         private async Task<List<DriveItem>> GetPhotosFromFolderAsync(GraphServiceClient client, string folderPath)
@@ -221,6 +275,12 @@ namespace PhotoSync
                 {
                     foreach (var item in driveItems.Value)
                     {
+                        // Skip items with no name
+                        if (string.IsNullOrEmpty(item.Name))
+                        {
+                            continue;
+                        }
+
                         // If it's a file with matching extension, add it
                         if (item.File != null &&
                             extensions.Any(ext => item.Name.EndsWith(ext, StringComparison.OrdinalIgnoreCase)))
@@ -228,7 +288,7 @@ namespace PhotoSync
                             photos.Add(item);
                         }
                         // If it's a folder, recurse into it
-                        else if (item.Folder != null && !string.IsNullOrEmpty(item.Name))
+                        else if (item.Folder != null)
                         {
                             var subFolderPath = $"{folderPath}/{item.Name}";
                             _logger.LogDebug($"Scanning subfolder: {subFolderPath}");
@@ -346,7 +406,7 @@ namespace PhotoSync
             return TryParseFileNameDate(originalFileName) ?? originalFileName;
         }
 
-        private string TryParseFileNameDate(string fileName)
+        private string? TryParseFileNameDate(string fileName)
         {
             // Try common patterns like IMG_20231225_143022.jpg or 2023-12-25_14-30-22.jpg
             var patterns = new[]
@@ -414,12 +474,23 @@ namespace PhotoSync
                 .PostAsync(uploadSessionRequest);
 
             // Use LargeFileUploadTask for all file sizes
+            if (uploadSession is null || string.IsNullOrEmpty(uploadSession.UploadUrl))
+            {
+                throw new InvalidOperationException("Failed to create upload session");
+            }
+
             var maxChunkSize = 320 * 1024; // 320 KB
+            // Note: The constructor 'Microsoft.Graph.LargeFileUploadTask<DriveItem>(UploadSession, Stream, int, IRequestAdapter)'
+            // is marked obsolete (CS0618). The recommended alternative is to use the IUploadSession-based approach,
+            // but as of June 2024, official documentation is lacking and migration guidance is unclear.
+            // See: https://github.com/microsoftgraph/msgraph-sdk-dotnet/issues/1862 for tracking migration.
+            #pragma warning disable CS0618
             var fileUploadTask = new Microsoft.Graph.LargeFileUploadTask<DriveItem>(
                 uploadSession,
                 photoStream,
                 maxChunkSize,
                 client.RequestAdapter);
+            #pragma warning restore CS0618
 
             await fileUploadTask.UploadAsync();
         }

@@ -1,34 +1,36 @@
-# Quick Start Guide - Photo Sync
+# Quick Start Guide - Photo Sync (Personal Accounts)
 
-This guide will get you up and running in under 30 minutes.
+This guide will get you up and running in under 30 minutes with **personal Microsoft accounts** (outlook.com, hotmail.com, live.com).
 
 ## Prerequisites Checklist
 
 - [ ] Azure subscription ([Get free trial](https://azure.microsoft.com/free/))
 - [ ] .NET 8.0 SDK installed
 - [ ] Azure Functions Core Tools installed
-- [ ] Access to the OneDrive accounts you want to sync
+- [ ] Terraform installed
+- [ ] Azure CLI installed
+- [ ] Node.js installed (for refresh token script)
+- [ ] Access to the personal Microsoft accounts you want to sync
 
 ## Step-by-Step Setup
 
-### 1. Register App in Azure AD (15 minutes)
+### 1. Register ONE App in Azure AD (5 minutes)
 
-You need to do this **3 times** (once for each OneDrive account):
-
-**For each account:**
+You only need **one** app registration for all accounts:
 
 1. Go to https://portal.azure.com
-2. Navigate to: **Azure Active Directory** → **App registrations** → **New registration**
+2. Navigate to: **Azure Entra** → **App registrations** → **New registration**
 3. Fill in:
-   - Name: `PhotoSync-Account1` (use descriptive names)
+   - Name: `PhotoSync-MultiAccount`
    - Supported account types: **Accounts in any organizational directory and personal Microsoft accounts**
+   - Redirect URI: Web → `http://localhost:8080/callback`
    - Click **Register**
 
 4. **Copy these values** (you'll need them later):
    - Application (client) ID: `abc123...`
-   - Directory (tenant) ID: `xyz789...`
+   - For Tenant ID, use: `common`
 
-5. Create a secret:
+5. Create a client secret:
    - Go to **Certificates & secrets**
    - Click **New client secret**
    - Description: `PhotoSync`
@@ -36,226 +38,251 @@ You need to do this **3 times** (once for each OneDrive account):
    - Click **Add**
    - **⚠️ COPY THE VALUE NOW** (you can't see it again!)
 
-6. Grant permissions:
+6. Grant **Delegated** permissions:
    - Go to **API permissions**
-   - Click **Add a permission** → **Microsoft Graph** → **Application permissions**
+   - Click **Add a permission** → **Microsoft Graph** → **Delegated permissions**
    - Search and add:
-     - `Files.Read.All`
-     - `Files.ReadWrite.All`
-   - Click **Grant admin consent for [Your Tenant]** (important!)
+     - `Files.Read`
+     - `Files.ReadWrite`
+     - `offline_access`
+   - **DO NOT** click "Grant admin consent" - users consent individually
 
-**Repeat for all 3 accounts** and save all the IDs and secrets.
+That's it! One app registration for all accounts.
 
-### 2. Configure Local Settings (5 minutes)
+### 2. Get Refresh Tokens (10 minutes)
 
-1. Open `local.settings.json`
-2. Replace the placeholder values with your actual credentials:
+Run the provided script to get refresh tokens for each personal account:
 
-```json
-{
-  "IsEncrypted": false,
-  "Values": {
-    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
-    
-    "OneDrive1:ClientId": "paste-your-client-id-here",
-    "OneDrive1:TenantId": "paste-your-tenant-id-here",
-    "OneDrive1:ClientSecret": "paste-your-secret-here",
-    "OneDrive1:SourceFolder": "Pictures/CameraRoll",
-    
-    "OneDrive2:ClientId": "paste-your-client-id-here",
-    "OneDrive2:TenantId": "paste-your-tenant-id-here",
-    "OneDrive2:ClientSecret": "paste-your-secret-here",
-    "OneDrive2:SourceFolder": "Pictures/CameraRoll",
-    
-    "OneDriveDestination:ClientId": "paste-your-client-id-here",
-    "OneDriveDestination:TenantId": "paste-your-tenant-id-here",
-    "OneDriveDestination:ClientSecret": "paste-your-secret-here",
-    "OneDriveDestination:DestinationFolder": "Pictures/FamilyPhotos"
-  }
-}
-```
-
-**Important:**
-- Folder paths use `/` slashes (not `\`)
-- No leading slash (use `Pictures/Folder` not `/Pictures/Folder`)
-- Check the folder names match your actual OneDrive structure
-
-### 3. Test Locally (5 minutes)
-
-1. Install and start Azurite (Azure Storage Emulator):
-   ```bash
-   npm install -g azurite
-   azurite
-   ```
-
-2. In a new terminal, restore packages and build:
-   ```bash
-   dotnet restore
-   dotnet build
-   ```
-
-3. Run the function:
-   ```bash
-   func start
-   ```
-
-4. In another terminal, trigger it manually:
-   ```bash
-   # Windows (PowerShell)
-   Invoke-WebRequest -Uri http://localhost:7071/api/ManualSync -Method POST
-   
-   # Mac/Linux
-   curl -X POST http://localhost:7071/api/ManualSync
-   ```
-
-5. Watch the console output - you should see:
-   - Connection to OneDrive accounts
-   - Photos being discovered
-   - Files being renamed and uploaded
-
-### 4. Deploy to Azure (5 minutes)
-
-**Option A: Using the provided script**
-
-Windows (PowerShell):
-```powershell
-.\deploy.ps1 -ResourceGroupName "PhotoSyncRG" -FunctionAppName "my-photo-sync"
-```
-
-Mac/Linux:
 ```bash
-chmod +x deploy.sh
-./deploy.sh -g PhotoSyncRG -n my-photo-sync
+cd tools
+node get-refresh-token.js YOUR_CLIENT_ID YOUR_CLIENT_SECRET
 ```
 
-**Option B: Manual deployment**
+**What happens:**
+1. Browser opens automatically
+2. Sign in with the first Microsoft account
+3. Grant permissions when prompted
+4. Copy the refresh token from terminal output
+5. Save it securely
+
+**Repeat for all 3 accounts:**
+- Your personal account → save as `source1_refresh_token`
+- Wife's personal account → save as `source2_refresh_token`
+- Shared destination account → save as `destination_refresh_token`
+
+**Important:** These tokens are long-lived (~90 days) and auto-renew. Store them securely!
+
+### 3. Configure Terraform (5 minutes)
+
+```bash
+cd terraform
+cp terraform.tfvars.example terraform.tfvars
+```
+
+Edit `terraform.tfvars` with your values:
+
+```hcl
+# Enable Key Vault for secure token storage
+enable_keyvault = true
+key_vault_name  = "photosync-kv-UNIQUE"  # Change UNIQUE to something random
+
+# Same client ID for all accounts
+# Note: Tenant is always "common" for personal accounts (hardcoded in auth provider)
+onedrive1_config = {
+  "OneDrive1:ClientId"               = "your-client-id"
+  "OneDrive1:RefreshTokenSecretName" = "source1-refresh-token"
+  "OneDrive1:ClientSecretName"       = "source1-client-secret"
+  "OneDrive1:SourceFolder"           = "/Photos"
+  "OneDrive1:DeleteAfterSync"        = "false"
+  "OneDrive1:MaxFilesPerRun"         = "100"  # Limit files per run to prevent timeout
+}
+
+onedrive2_config = {
+  "OneDrive2:ClientId"               = "your-client-id"  # Same as above
+  "OneDrive2:RefreshTokenSecretName" = "source2-refresh-token"
+  "OneDrive2:ClientSecretName"       = "source2-client-secret"
+  "OneDrive2:SourceFolder"           = "/Pictures"
+  "OneDrive2:DeleteAfterSync"        = "false"
+  "OneDrive2:MaxFilesPerRun"         = "100"  # Limit files per run to prevent timeout
+}
+
+onedrive_destination_config = {
+  "OneDriveDestination:ClientId"               = "your-client-id"  # Same as above
+  "OneDriveDestination:RefreshTokenSecretName" = "destination-refresh-token"
+  "OneDriveDestination:ClientSecretName"       = "destination-client-secret"
+  "OneDriveDestination:DestinationFolder"      = "/Synced Photos"
+}
+
+# Paste the refresh tokens from Step 2
+source1_refresh_token      = "0.AXEA..."  # Your token
+source2_refresh_token      = "0.AXEA..."  # Wife's token
+destination_refresh_token  = "0.AXEA..."  # Shared token
+
+# Paste the client secret from Step 1 (same for all)
+source1_client_secret_for_vault      = "your-client-secret"
+source2_client_secret_for_vault      = "your-client-secret"
+destination_client_secret_for_vault  = "your-client-secret"
+```
+
+### 4. Deploy Infrastructure (5 minutes)
 
 ```bash
 # Login to Azure
 az login
 
-# Create resources
-az group create --name PhotoSyncRG --location westeurope
-
-az storage account create --name photosyncstorage123 --location westeurope \
-  --resource-group PhotoSyncRG --sku Standard_LRS
-
-az functionapp create --resource-group PhotoSyncRG \
-  --consumption-plan-location westeurope --runtime dotnet-isolated \
-  --functions-version 4 --name my-photo-sync \
-  --storage-account photosyncstorage123 --os-type Linux
-
-# Deploy code
-func azure functionapp publish my-photo-sync
+# Deploy with Terraform
+terraform init
+terraform plan
+terraform apply
 ```
 
-### 5. Configure Azure Settings (3 minutes)
+Type `yes` when prompted. This creates:
+- Two Function Apps (one for each source account)
+- Azure Key Vault (for refresh tokens) with automatic configuration
+- Storage accounts (for state tracking)
+- Application Insights (for monitoring)
+- All necessary app settings including Key Vault URL
 
-You need to add the same settings from `local.settings.json` to Azure:
+### 5. Deploy Function Code (2 minutes)
 
-**Option A: Azure Portal (easier)**
-1. Go to https://portal.azure.com
-2. Find your Function App
-3. Go to **Configuration** → **Application settings**
-4. Click **New application setting** for each setting
-5. Click **Save**
-
-**Option B: Azure CLI (faster)**
 ```bash
-az functionapp config appsettings set \
-  --name my-photo-sync \
-  --resource-group PhotoSyncRG \
-  --settings \
-    "OneDrive1:ClientId=abc123..." \
-    "OneDrive1:TenantId=xyz789..." \
-    "OneDrive1:ClientSecret=secret..." \
-    "OneDrive1:SourceFolder=Pictures/CameraRoll" \
-    "OneDrive2:ClientId=def456..." \
-    "OneDrive2:TenantId=uvw012..." \
-    "OneDrive2:ClientSecret=secret..." \
-    "OneDrive2:SourceFolder=Pictures/CameraRoll" \
-    "OneDriveDestination:ClientId=ghi789..." \
-    "OneDriveDestination:TenantId=rst345..." \
-    "OneDriveDestination:ClientSecret=secret..." \
-    "OneDriveDestination:DestinationFolder=Pictures/FamilyPhotos"
+# Get the deployment outputs
+SOURCE1=$(terraform output -raw function_app_source1_name)
+SOURCE2=$(terraform output -raw function_app_source2_name)
+
+# Deploy to both Function Apps
+cd ../src
+func azure functionapp publish $SOURCE1
+func azure functionapp publish $SOURCE2
 ```
+
+## Done! 🎉
+
+Your PhotoSync is now running with personal Microsoft accounts using secure refresh token authentication.
 
 ## Verification
 
-### Test the Deployed Function
-
-Trigger it manually:
-```bash
-# Get the function key from Azure Portal
-# Then use curl or Postman
-curl -X POST https://my-photo-sync.azurewebsites.net/api/ManualSync?code=YOUR_FUNCTION_KEY
-```
-
 ### Check Logs
 
-In Azure Portal:
-1. Go to your Function App
-2. Click **Log stream**
-3. You'll see real-time logs of the sync process
+View logs in Application Insights:
+
+```bash
+# Get the Application Insights logs URL
+cd terraform
+terraform output logs_portal_url
+
+# Or view logs directly in Azure Portal
+# Navigate to: Application Insights → photosync-insights → Logs
+```
+
+You can also query logs using KQL (Kusto Query Language):
+```kql
+traces
+| where timestamp > ago(1h)
+| where cloud_RoleName contains "photosync"
+| order by timestamp desc
+| project timestamp, message, severityLevel
+```
+
+### Manually Trigger (Optional)
+
+To test immediately without waiting for the schedule, use the trigger script:
+
+```bash
+# Trigger both Function Apps
+./trigger-sync.sh
+
+# Trigger only Source 1
+./trigger-sync.sh --source1-only
+
+# Trigger and view logs in Application Insights
+./trigger-sync.sh --logs
+```
 
 ### Verify Photos
 
-1. Check your destination OneDrive account
-2. Navigate to the folder you specified (e.g., `Pictures/FamilyPhotos`)
-3. You should see renamed photos with format: `20231225_143022.jpg`
+1. Check your destination OneDrive account (sign in at onedrive.com)
+2. Navigate to the destination folder (e.g., `/Synced Photos`)
+3. Look for photos organized by date: `2025/2025-12/20231225_143022.jpg`
 
 ## Schedule
 
-The function runs automatically daily at 2 AM UTC. To change:
+The function runs automatically every hour. To change:
 1. Open `PhotoSyncFunction.cs`
-2. Change the cron expression: `[TimerTrigger("0 0 2 * * *")]`
+2. Change the cron expression: `[TimerTrigger("0 0 * * * *")]`
 
 Examples:
 - Every 6 hours: `"0 0 */6 * * *"`
 - Every day at 8 PM: `"0 0 20 * * *"`
 - Twice daily (6 AM & 6 PM): `"0 0 6,18 * * *"`
 
+## Configuration Options
+
+### MaxFilesPerRun
+
+The `MaxFilesPerRun` setting limits how many files are processed in a single run. This is useful for:
+- **Initial sync**: When you have many files, process them incrementally to avoid timeout
+- **Consumption plan limits**: Azure Functions Consumption plan has a 10-minute timeout
+- **Controlled syncing**: Process files in smaller batches for better monitoring
+
+**Recommended values:**
+- **100-200 files**: Good balance for initial sync with many files
+- **Unlimited**: Set to a very high number (e.g., `"999999"`) once initial sync is complete
+- **Adjust based on file sizes**: Larger photos/videos may need lower limits
+
+Example: If you have 1000 photos and set `MaxFilesPerRun = "100"`, it will take 10 runs (10 days at daily schedule) to sync all files.
+
 ## Troubleshooting
 
-### "Insufficient privileges"
-- Did you click **Grant admin consent** for API permissions?
-- Wait 5-10 minutes after granting consent
+### "Failed to retrieve refresh token from Key Vault"
+- Ensure Function App managed identity has Key Vault access (Terraform handles this automatically)
+- Check Key Vault access policies in Azure Portal
+- Verify `KeyVault:VaultUrl` is set correctly
 
-### "Path does not exist"
-- Check folder paths in settings (no leading slash!)
-- Verify folders exist in OneDrive
-- Use forward slashes `/` not backslashes `\`
+### "Token exchange failed"
+- The refresh token may have expired or been revoked
+- Re-run `tools/get-refresh-token.js` to get a new token
+- Update the secret in Key Vault
 
 ### "Authentication failed"
-- Double-check Client ID, Tenant ID, and Secret
-- Make sure you copied the secret value (not the secret ID)
-- Check if secret has expired
+- Verify the client secret is correct in Key Vault
+- Make sure you used `common` as the tenant ID
+- Check that refresh tokens are stored correctly in Key Vault
 
 ### No photos syncing
-- Check that source folders have photos
-- Look at the logs for specific errors
-- Verify file extensions are supported (.jpg, .png, .heic, etc.)
+- Check Function App logs for specific errors
+- Verify source folders contain photos
+- Ensure folder paths are correct (relative to OneDrive root)
+- Check that photos have supported extensions (.jpg, .png, .heic, etc.)
 
 ## Cost
 
-For typical use (500 photos/month):
-- Azure Functions: ~$0.20/month
-- Storage: ~$0.05/month
+For typical use (500 photos/month with 2 Function Apps):
+- Azure Functions (2 apps): ~$0.40/month
+- Storage (2 accounts): ~$0.10/month
+- Key Vault: ~$0.10/month
 - Data transfer: ~$1-2/month
 
-**Total: ~$2-3/month**
+**Total: ~$2.50-3/month**
+
+## How It Works
+
+1. **One App Registration**: All accounts use the same Azure AD app
+2. **Delegated Permissions**: Each user consents individually when getting their refresh token
+3. **Refresh Tokens**: Long-lived tokens (~90 days) stored securely in Azure Key Vault
+4. **Auto-Renewal**: Tokens automatically renew when used, so they never expire
+5. **Managed Identities**: Function Apps access Key Vault securely without passwords
+6. **User Control**: Users can revoke access anytime via their Microsoft account settings
 
 ## Next Steps
 
-- Monitor the function for a few days
-- Check that photos are syncing correctly
-- Adjust the schedule if needed
-- Add more source accounts if needed (edit code)
-- Consider organizing photos by date (see README for code example)
+- Monitor logs for the next few days
+- Verify photos are syncing correctly with date-based folders
+- See [PERSONAL_ACCOUNTS_SETUP.md](PERSONAL_ACCOUNTS_SETUP.md) for detailed documentation
+- Check [README.md](README.md) for customization options
 
 ## Support
 
-- Check logs in Azure Portal
-- Review the full README.md for detailed documentation
-- Test locally first if issues arise
+- Check Function App logs in Azure Portal
+- Review [PERSONAL_ACCOUNTS_SETUP.md](PERSONAL_ACCOUNTS_SETUP.md) for detailed troubleshooting
+- See [terraform/TERRAFORM.md](terraform/TERRAFORM.md) for infrastructure documentation

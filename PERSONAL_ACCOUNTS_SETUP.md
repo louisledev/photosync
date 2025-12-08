@@ -182,29 +182,28 @@ source2_client_secret_for_vault      = "your-actual-client-secret"  # Same
 destination_client_secret_for_vault  = "your-actual-client-secret"  # Same
 
 # Configure Function Apps to use refresh tokens
-# Use "common" as tenant ID for personal accounts
-# ClientSecret value should be the Key Vault secret NAME, not the actual token
+# Note: Tenant is always "common" for personal accounts (hardcoded in auth provider)
 onedrive1_config = {
-  "OneDrive1:ClientId"        = "your-client-id"
-  "OneDrive1:TenantId"        = "common"
-  "OneDrive1:ClientSecret"    = "source1-refresh-token"  # Secret NAME
-  "OneDrive1:SourceFolder"    = "Pictures/CameraRoll"
-  "OneDrive1:DeleteAfterSync" = "false"
+  "OneDrive1:ClientId"               = "your-client-id"
+  "OneDrive1:RefreshTokenSecretName" = "source1-refresh-token"  # Key Vault secret NAME containing the refresh token
+  "OneDrive1:ClientSecretName"       = "source1-client-secret"  # Key Vault secret NAME containing the OAuth client secret
+  "OneDrive1:SourceFolder"           = "Pictures/CameraRoll"
+  "OneDrive1:DeleteAfterSync"        = "false"
 }
 
 onedrive2_config = {
-  "OneDrive2:ClientId"        = "your-client-id"  # Same
-  "OneDrive2:TenantId"        = "common"
-  "OneDrive2:ClientSecret"    = "source2-refresh-token"  # Secret NAME
-  "OneDrive2:SourceFolder"    = "Pictures/CameraRoll"
-  "OneDrive2:DeleteAfterSync" = "false"
+  "OneDrive2:ClientId"               = "your-client-id"  # Same
+  "OneDrive2:RefreshTokenSecretName" = "source2-refresh-token"  # Key Vault secret NAME containing the refresh token
+  "OneDrive2:ClientSecretName"       = "source2-client-secret"  # Key Vault secret NAME containing the OAuth client secret
+  "OneDrive2:SourceFolder"           = "Pictures/CameraRoll"
+  "OneDrive2:DeleteAfterSync"        = "false"
 }
 
 onedrive_destination_config = {
-  "OneDriveDestination:ClientId"     = "your-client-id"  # Same
-  "OneDriveDestination:TenantId"     = "common"
-  "OneDriveDestination:ClientSecret" = "destination-refresh-token"  # Secret NAME
-  "OneDriveDestination:DestinationFolder" = "Pictures/FamilyPhotos"
+  "OneDriveDestination:ClientId"               = "your-client-id"  # Same
+  "OneDriveDestination:RefreshTokenSecretName" = "destination-refresh-token"  # Key Vault secret NAME containing the refresh token
+  "OneDriveDestination:ClientSecretName"       = "destination-client-secret"  # Key Vault secret NAME containing the OAuth client secret
+  "OneDriveDestination:DestinationFolder"      = "Pictures/FamilyPhotos"
 }
 ```
 
@@ -261,6 +260,28 @@ Your PhotoSync is now running with personal Microsoft accounts using secure refr
 3. **Refresh Tokens**: Long-lived tokens (90 days) stored in Key Vault, auto-renewed when used
 4. **Function Apps**: Use managed identities to retrieve tokens from Key Vault
 5. **Token Exchange**: Refresh tokens are exchanged for short-lived access tokens on demand
+
+## Configuration Options
+
+### Client Secret Name (Optional)
+
+By default, all sources share the same OAuth client secret stored under the name `source1-client-secret` in Key Vault. This works fine when all accounts use the same Azure AD app registration (which is typical for personal accounts).
+
+However, if you need different client secrets for different sources (e.g., using multiple app registrations), you can configure the client secret name per source:
+
+```
+OneDriveSource:ClientSecretName = "source1-client-secret"
+OneDriveDestination:ClientSecretName = "destination-client-secret"
+```
+
+If not specified, the system falls back to:
+1. The value from `KeyVault:ClientSecretName` configuration (if set)
+2. The default `source1-client-secret` (for backward compatibility)
+
+This configuration is stored in Key Vault secrets following the naming pattern used by Terraform:
+- `source1-client-secret`
+- `source2-client-secret`
+- `destination-client-secret`
 
 ## Benefits
 

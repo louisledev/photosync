@@ -17,7 +17,10 @@
       "Bash(dotnet test:*)",
       "Bash(/usr/local/share/dotnet/dotnet build PhotoSync.sln)",
       "Bash(/usr/local/share/dotnet/dotnet clean PhotoSync.sln)",
-      "Bash(/usr/local/share/dotnet/dotnet build /Users/louis/src/perso/photosync/src/PhotoSync.csproj)"
+      "Bash(/usr/local/share/dotnet/dotnet build /Users/louis/src/perso/photosync/src/PhotoSync.csproj)",
+      "Bash(dotnet clean:*)",
+      "Bash(dotnet list:*)",
+      "Bash(/usr/local/share/dotnet/dotnet build:*)"
     ],
     "deny": [],
     "ask": []

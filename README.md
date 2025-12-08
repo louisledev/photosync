@@ -127,7 +127,7 @@ graph TB
 - **Application Insights**: Centralized monitoring and logging for both apps
 - **Optional Source Deletion**: Configurable per Function App to delete source files after successful upload (prevents duplication)
 
-See [ARCHITECTURE_CHANGES.md](ARCHITECTURE_CHANGES.md) for details on the migration and benefits.
+See [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) for details on the architecture and benefits.
 
 ## Prerequisites
 
@@ -148,192 +148,148 @@ brew install azure-functions-core-tools@4
 
 ## Setup Instructions
 
-**⚠️ Important: Personal Microsoft Accounts**
+**This guide is for Personal Microsoft Accounts Only**
 
-If you're syncing from **personal Microsoft accounts** (outlook.com, hotmail.com, live.com) that aren't part of your Azure organization, you **cannot** use the standard setup below. Instead, see [PERSONAL_ACCOUNTS_SETUP.md](PERSONAL_ACCOUNTS_SETUP.md) for instructions on using refresh token authentication.
+This project is designed for **personal Microsoft accounts** (outlook.com, hotmail.com, live.com) using refresh token authentication. See [QUICKSTART.md](QUICKSTART.md) for a quick start guide or [PERSONAL_ACCOUNTS_SETUP.md](PERSONAL_ACCOUNTS_SETUP.md) for detailed instructions.
 
-The instructions below are for **organizational accounts** only.
+### Step 1: Register ONE Azure AD Application
 
----
-
-### Step 1: Register Azure AD Applications (Organizational Accounts Only)
-
-⚠️ **Skip this section if using personal accounts** - see [PERSONAL_ACCOUNTS_SETUP.md](PERSONAL_ACCOUNTS_SETUP.md) instead.
-
-You need to create 3 Azure AD app registrations (one for each OneDrive account):
+You only need **one** app registration that will be used by all accounts:
 
 1. Go to [Azure Portal](https://portal.azure.com) → **Azure Entra** → **App registrations**
 2. Click **New registration**
 3. Configure:
-   - **Name**: `PhotoSync-OneDrive1` (use descriptive names)
-   - **Supported account types**: Accounts in this organizational directory only
+   - **Name**: `PhotoSync-MultiAccount`
+   - **Supported account types**: **Accounts in any organizational directory and personal Microsoft accounts**
+   - **Redirect URI**: Web → `http://localhost:8080/callback`
    - Click **Register**
 
 4. After registration:
    - Copy the **Application (client) ID**
-   - Copy the **Directory (tenant) ID**
+   - For **Tenant ID**, use `common` (not your actual tenant ID)
    - Go to **Certificates & secrets** → **New client secret**
    - Create a secret and **copy the value immediately** (you can't see it again)
 
-5. Grant API permissions:
+5. Grant **Delegated** API permissions (NOT Application permissions):
    - Go to **API permissions** → **Add a permission**
-   - Select **Microsoft Graph** → **Application permissions**
+   - Select **Microsoft Graph** → **Delegated permissions**
    - Add these permissions:
-     - `Files.Read.All`
-     - `Files.ReadWrite.All`
-   - Click **Grant admin consent**
+     - `Files.Read`
+     - `Files.ReadWrite`
+     - `offline_access`
+   - **DO NOT** click "Grant admin consent" - users consent individually when obtaining refresh tokens
 
-6. **Repeat steps 2-5 for each OneDrive account** (your account, wife's account, destination account)
+### Step 2: Get Refresh Tokens
 
-### Step 2: Configure the Function
+Use the provided Node.js script to obtain refresh tokens for each personal account:
 
-For **local development**, configure a single source account to test with:
-
-1. Open `local.settings.json` and fill in your credentials:
-
-```json
-{
-  "Values": {
-    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
-
-    "OneDriveSource:ClientId": "abc123...",
-    "OneDriveSource:TenantId": "xyz789...",
-    "OneDriveSource:ClientSecret": "secret1...",
-    "OneDriveSource:SourceFolder": "Pictures/CameraRoll",
-    "OneDriveSource:DeleteAfterSync": "false",
-
-    "OneDriveDestination:ClientId": "ghi789...",
-    "OneDriveDestination:TenantId": "rst345...",
-    "OneDriveDestination:ClientSecret": "secret3...",
-    "OneDriveDestination:DestinationFolder": "Pictures/FamilyPhotos"
-  }
-}
+```bash
+cd tools
+node get-refresh-token.js YOUR_CLIENT_ID YOUR_CLIENT_SECRET
 ```
 
-For **production deployment** with two Function Apps, use Terraform to configure both sources (see Step 4 below).
+- A browser window will open for you to sign in
+- Sign in with the Microsoft account you want to authorize
+- Grant the requested permissions
+- The refresh token will be displayed in the terminal
+- **Save this token securely** - you'll store it in Azure Key Vault
 
-**Important Notes:**
-- Each Function App deployment handles one source account (`OneDriveSource`)
-- Set `DeleteAfterSync` to `true` to automatically delete source files after successful upload (prevents duplication)
-- Set `DeleteAfterSync` to `false` (default) to keep source files in place
-- Folder paths are relative to the OneDrive root (no leading slash)
-- Use forward slashes `/` for folder paths
-- The destination folder will be created automatically if it doesn't exist
+**Repeat this process for each account:**
+- Your personal account
+- Your wife's personal account
+- The shared destination account
 
-### Step 3: Local Testing
+See [tools/README.md](tools/README.md) for more details.
 
-1. Install Azurite (Azure Storage Emulator):
-   ```bash
-   npm install -g azurite
-   ```
+### Step 3: Deploy Infrastructure with Key Vault
 
-2. Start Azurite:
-   ```bash
-   azurite --silent --location c:\azurite --debug c:\azurite\debug.log
-   ```
+Configure Terraform with Key Vault enabled for secure refresh token storage:
 
-3. Build and run the function:
-   ```bash
-   cd src
-   dotnet build
-   func start
-   ```
-
-4. To trigger the function manually (without waiting for the schedule):
-   - Open a new terminal and run:
-   ```bash
-   curl http://localhost:7071/admin/functions/PhotoSyncTimer -X POST -H "Content-Type: application/json" -d "{}"
-   ```
-
-### Step 4: Deploy to Azure
-
-#### Option A: Using Terraform (Recommended)
-
-This will deploy **two separate Function Apps** (one for each source account).
-
-See [terraform/TERRAFORM.md](terraform/TERRAFORM.md) for detailed instructions.
-
+1. Copy the example configuration:
 ```bash
 cd terraform
 cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars with credentials for both source accounts
+```
+
+2. Edit `terraform.tfvars` with your configuration:
+```hcl
+# Enable Key Vault for refresh tokens
+enable_keyvault = true
+key_vault_name  = "photosync-kv-UNIQUE"  # Must be globally unique
+
+# Use the same client ID for all accounts
+# Note: Tenant is always "common" for personal accounts (hardcoded in auth provider)
+onedrive1_config = {
+  "OneDrive1:ClientId"               = "your-client-id"
+  "OneDrive1:RefreshTokenSecretName" = "source1-refresh-token"
+  "OneDrive1:ClientSecretName"       = "source1-client-secret"
+  "OneDrive1:SourceFolder"           = "/Photos"
+  "OneDrive1:DeleteAfterSync"        = "false"
+}
+
+onedrive2_config = {
+  "OneDrive2:ClientId"               = "your-client-id"  # Same as above
+  "OneDrive2:RefreshTokenSecretName" = "source2-refresh-token"
+  "OneDrive2:ClientSecretName"       = "source2-client-secret"
+  "OneDrive2:SourceFolder"           = "/Pictures"
+  "OneDrive2:DeleteAfterSync"        = "false"
+}
+
+onedrive_destination_config = {
+  "OneDriveDestination:ClientId"               = "your-client-id"  # Same as above
+  "OneDriveDestination:RefreshTokenSecretName" = "destination-refresh-token"
+  "OneDriveDestination:ClientSecretName"       = "destination-client-secret"
+  "OneDriveDestination:DestinationFolder"      = "/Synced Photos"
+}
+
+# Store refresh tokens from Step 2
+source1_refresh_token      = "0.AXEA..."  # Your refresh token
+source2_refresh_token      = "0.AXEA..."  # Wife's refresh token
+destination_refresh_token  = "0.AXEA..."  # Shared account refresh token
+
+# Store the actual client secret
+source1_client_secret_for_vault      = "your-actual-client-secret"
+source2_client_secret_for_vault      = "your-actual-client-secret"  # Same
+destination_client_secret_for_vault  = "your-actual-client-secret"  # Same
+```
+
+3. Deploy the infrastructure:
+```bash
 terraform init
-terraform plan
 terraform apply
 ```
 
-Then deploy the function code to **both Function Apps**:
+**Important Notes:**
+- Each Function App deployment handles one source account
+- Refresh tokens are stored securely in Azure Key Vault
+- Function Apps use managed identities to access Key Vault (configured automatically by Terraform)
+- Key Vault URL is automatically configured by Terraform
+- Set `DeleteAfterSync` to `true` to automatically delete source files after sync
+- Set `DeleteAfterSync` to `false` (default) to keep source files in place
+- Set `MaxFilesPerRun` to limit files processed per run (e.g., `"100"`) to prevent timeout during initial sync
+- Folder paths are relative to the OneDrive root
+- Use forward slashes `/` for folder paths
+
+### Step 4: Deploy Function Code
+
+Deploy the application code to both Function Apps:
+
 ```bash
-# Get the Function App names from Terraform outputs
+# Get deployment outputs
 SOURCE1=$(terraform output -raw function_app_source1_name)
 SOURCE2=$(terraform output -raw function_app_source2_name)
 
-# Deploy to both apps
-cd ../src
+# Deploy the code
+cd src
 func azure functionapp publish $SOURCE1
 func azure functionapp publish $SOURCE2
 ```
 
-#### Option B: Using Azure CLI
+### Step 5: Configure Schedule (Optional)
 
-**Note**: You need to create and deploy to **two separate Function Apps** for complete isolation.
+The function is set to run daily at 2 AM UTC by default. To change this:
 
-1. Login to Azure:
-   ```bash
-   az login
-   ```
-
-2. Create a resource group:
-   ```bash
-   az group create --name PhotoSyncRG --location westeurope
-   ```
-
-3. Create storage accounts and Function Apps for both sources:
-   ```bash
-   # Source 1
-   az storage account create --name photosyncsrc1 --location westeurope --resource-group PhotoSyncRG --sku Standard_LRS
-   az functionapp create --resource-group PhotoSyncRG --consumption-plan-location westeurope \
-     --runtime dotnet-isolated --functions-version 4 --name photosync-source1 \
-     --storage-account photosyncsrc1 --os-type Linux
-
-   # Source 2
-   az storage account create --name photosyncsrc2 --location westeurope --resource-group PhotoSyncRG --sku Standard_LRS
-   az functionapp create --resource-group PhotoSyncRG --consumption-plan-location westeurope \
-     --runtime dotnet-isolated --functions-version 4 --name photosync-source2 \
-     --storage-account photosyncsrc2 --os-type Linux
-   ```
-
-4. Configure application settings for Source 1:
-   ```bash
-   az functionapp config appsettings set --name photosync-source1 \
-     --resource-group PhotoSyncRG \
-     --settings "OneDriveSource:ClientId=your-source1-client-id" \
-                "OneDriveSource:TenantId=your-source1-tenant-id" \
-                "OneDriveSource:ClientSecret=your-source1-secret" \
-                "OneDriveSource:SourceFolder=Pictures/CameraRoll" \
-                "OneDriveSource:DeleteAfterSync=false" \
-                "OneDriveDestination:ClientId=your-dest-client-id" \
-                "OneDriveDestination:TenantId=your-dest-tenant-id" \
-                "OneDriveDestination:ClientSecret=your-dest-secret" \
-                "OneDriveDestination:DestinationFolder=Pictures/FamilyPhotos"
-   ```
-
-5. Configure application settings for Source 2 (repeat with source 2 credentials)
-   - Set `DeleteAfterSync=true` if you want to automatically delete source files after sync
-   - Set `DeleteAfterSync=false` (or omit it) to keep source files
-
-6. Deploy the function code to both apps:
-   ```bash
-   func azure functionapp publish photosync-source1
-   func azure functionapp publish photosync-source2
-   ```
-
-### Step 5: Configure Schedule
-
-The function is set to run daily at 2 AM UTC. To change this:
-
-1. Open `PhotoSyncFunction.cs`
+1. Open [src/PhotoSyncFunction.cs](src/PhotoSyncFunction.cs)
 2. Modify the cron expression in the `TimerTrigger` attribute:
    ```csharp
    [TimerTrigger("0 0 2 * * *")] // "second minute hour day month dayOfWeek"
@@ -343,6 +299,8 @@ Examples:
 - Every day at 2 AM: `"0 0 2 * * *"`
 - Every 6 hours: `"0 0 */6 * * *"`
 - Every day at noon: `"0 0 12 * * *"`
+
+After changing, redeploy the code to both Function Apps.
 
 ## Testing
 
@@ -450,10 +408,91 @@ The function automatically logs to Application Insights:
 - Clear the state: Delete all records from the `ProcessedPhotos` table in Azure Storage
 - The function will re-process all photos (will not create duplicates if they already exist)
 
+## Performance Limitations
+
+### 10-Minute Timeout on Consumption Plan
+
+The project uses Azure Functions **Consumption Plan (Y1)** which has a **maximum execution timeout of 10 minutes**. This is a hard limit that cannot be increased on this tier.
+
+**When this becomes a problem:**
+- **Initial sync with many files**: If you have thousands of photos (e.g., 7,000+ files), scanning the source folder alone can take 60-80 seconds
+- **Large file processing**: Processing large photos or videos may exceed the 10-minute limit
+- **Network latency**: Slow network connections can cause timeouts during upload/download
+
+**Current workaround:**
+The project includes a `MaxFilesPerRun` setting to limit files processed per execution:
+
+```hcl
+# In terraform.tfvars
+onedrive1_config = {
+  "OneDrive1:MaxFilesPerRun" = "20"  # Process only 20 files per run
+}
+```
+
+With hourly execution (`"0 0 * * * *"`), processing 20 files/hour = 480 files/day.
+
+**For large initial sync:**
+- Set `MaxFilesPerRun` to 20-50 depending on file sizes
+- Run hourly to gradually sync all files
+- After initial sync completes, you can increase the value or remove the limit
+
+### Solution: Upgrade to Premium or Dedicated Plan
+
+If you need longer execution times, upgrade to a higher-tier plan:
+
+#### **Premium Plan (EP1)** - Recommended for most users
+- **Timeout**: Up to 60 minutes (or unlimited with proper configuration)
+- **Cost**: ~$150-200/month per Function App
+- **Benefits**:
+  - VNet integration for secure connectivity
+  - Pre-warmed instances (no cold start)
+  - Unlimited execution duration (with AlwaysOn)
+  - More CPU and memory
+- **Best for**: Users with 10,000+ files or large video files
+
+#### **Dedicated Plan (App Service Plan S1)**
+- **Timeout**: Unlimited (no time restrictions)
+- **Cost**: ~$70/month per Function App
+- **Benefits**:
+  - Predictable pricing
+  - AlwaysOn enabled by default
+  - Shared with other App Service apps to reduce cost
+- **Best for**: Predictable workload, already using App Service Plan
+
+#### **How to upgrade:**
+
+1. **Via Azure Portal:**
+   - Go to Function App → Settings → Scale up (App Service Plan)
+   - Select Premium Plan (EP1) or Dedicated Plan (S1)
+   - Update the `functionTimeout` in [src/host.json](src/host.json):
+     ```json
+     {
+       "functionTimeout": "01:00:00"  // 60 minutes (or "-1" for unlimited on Dedicated)
+     }
+     ```
+
+2. **Via Terraform** (recommended):
+   - Update `terraform/modules/function-app/main.tf`:
+     ```hcl
+     # Change from "Y1" (Consumption) to "EP1" (Premium)
+     resource "azurerm_service_plan" "function_plan" {
+       name                = "${var.function_app_name}-plan"
+       resource_group_name = var.resource_group_name
+       location            = var.location
+       os_type             = "Linux"
+       sku_name            = "EP1"  # Changed from "Y1"
+     }
+     ```
+   - Run `terraform apply` to update both Function Apps
+   - Update [src/host.json](src/host.json) and redeploy code
+
+**Note:** Premium/Dedicated plans cost significantly more (~50-100x) than Consumption Plan. Only upgrade if you truly need longer execution times.
+
 ## Cost Estimation
 
 Based on moderate usage (500 photos/month with two Function Apps):
 
+### Consumption Plan (Current)
 - **Azure Functions Consumption Plan (2 apps)**: ~$0.40/month
 - **Azure Storage (2 storage accounts)**: ~$0.10/month
 - **Data Transfer**: ~$1-2/month (depends on photo sizes)
@@ -462,6 +501,22 @@ Based on moderate usage (500 photos/month with two Function Apps):
 **Total: ~$2.50-3/month**
 
 Note: The Consumption Plan charges per execution, so running two Function Apps costs nearly the same as one.
+
+### Premium Plan (EP1) - If You Need Longer Timeout
+- **Azure Functions Premium Plan (2 apps)**: ~$300-400/month
+- **Azure Storage (2 storage accounts)**: ~$0.10/month
+- **Data Transfer**: ~$1-2/month
+- **Application Insights**: Free tier should suffice
+
+**Total: ~$300-400/month**
+
+### Dedicated Plan (S1) - Alternative Option
+- **Azure Functions Dedicated Plan (2 apps)**: ~$140/month
+- **Azure Storage (2 storage accounts)**: ~$0.10/month
+- **Data Transfer**: ~$1-2/month
+- **Application Insights**: Free tier should suffice
+
+**Total: ~$140-145/month**
 
 ## Extending the Solution
 
@@ -494,7 +549,7 @@ module "function_app_source3" {
 2. Deploy the new Function App and publish code to it
 3. Each Function App runs independently with complete isolation
 
-See [ARCHITECTURE_CHANGES.md](ARCHITECTURE_CHANGES.md) for more details on the modular architecture.
+See [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) for more details on the modular architecture.
 
 ### Add NAS Sync
 

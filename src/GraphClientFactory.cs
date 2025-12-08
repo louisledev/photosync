@@ -7,8 +7,8 @@ using System.Net.Http;
 namespace PhotoSync
 {
     /// <summary>
-    /// Factory for creating Microsoft Graph clients with support for both
-    /// client credentials (organizational accounts) and refresh tokens (personal accounts)
+    /// Factory for creating Microsoft Graph clients using refresh token authentication
+    /// for personal Microsoft accounts
     /// </summary>
     public class GraphClientFactory : IGraphClientFactory
     {
@@ -30,23 +30,29 @@ namespace PhotoSync
             }
         }
 
-        public GraphServiceClient CreateClient(string clientId, string tenantId, string clientSecret)
+        public GraphServiceClient CreateClient(string clientId, string refreshTokenSecretName, string clientSecretName)
         {
-            // Check if we're using refresh token mode
-            var useRefreshToken = bool.TryParse(_configuration["UseRefreshTokenAuth"], out var useRefresh) && useRefresh;
+            // Always use refresh token authentication for personal Microsoft accounts
+            var refreshToken = GetRefreshToken(refreshTokenSecretName);
+            var authProvider = new RefreshTokenAuthenticationProvider(clientId, GetClientSecret(clientSecretName), refreshToken, _httpClient);
+            return new GraphServiceClient(authProvider);
+        }
 
-            if (useRefreshToken)
+        public async Task<(bool IsValid, string? ErrorMessage)> ValidateRefreshTokenAsync(
+            string clientId,
+            string refreshTokenSecretName,
+            string clientSecretName,
+            CancellationToken cancellationToken = default)
+        {
+            try
             {
-                // Use refresh token authentication for personal Microsoft accounts
-                var refreshToken = GetRefreshToken(clientSecret); // clientSecret parameter is used as refresh token key name
-                var authProvider = new RefreshTokenAuthenticationProvider(clientId, GetClientSecret(clientId), refreshToken, _httpClient);
-                return new GraphServiceClient(authProvider);
+                var refreshToken = GetRefreshToken(refreshTokenSecretName);
+                var authProvider = new RefreshTokenAuthenticationProvider(clientId, GetClientSecret(clientSecretName), refreshToken, _httpClient);
+                return await authProvider.ValidateRefreshTokenAsync(cancellationToken);
             }
-            else
+            catch (Exception ex)
             {
-                // Use client credentials flow for organizational accounts
-                var credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
-                return new GraphServiceClient(credential);
+                return (false, $"Failed to validate token for {refreshTokenSecretName}: {ex.Message}");
             }
         }
 
@@ -68,31 +74,27 @@ namespace PhotoSync
             }
         }
 
-        private string GetClientSecret(string clientId)
+        private string GetClientSecret(string keyName)
         {
-            // Try to get client secret from Key Vault first, fall back to configuration
-            if (_secretClient != null)
+            if (_secretClient == null)
             {
-                try
-                {
-                    var secretName = $"{clientId}-client-secret";
-                    var secret = _secretClient.GetSecret(secretName);
-                    return secret.Value.Value;
-                }
-                catch
-                {
-                    // Fall through to configuration
-                }
+                throw new InvalidOperationException("Key Vault is not configured. Ensure 'KeyVault:VaultUrl' is set in configuration and Key Vault is enabled in Terraform (enable_keyvault = true).");
             }
 
-            // Look for client secret in configuration
-            var clientSecret = _configuration[$"OneDriveSource:ClientSecret"] ?? _configuration[$"OneDriveDestination:ClientSecret"];
-            if (string.IsNullOrEmpty(clientSecret))
+            if (string.IsNullOrEmpty(keyName))
             {
-                throw new InvalidOperationException($"Client secret not found for client ID: {clientId}");
+                throw new ArgumentNullException(nameof(keyName), "Client secret name must be provided.");
             }
 
-            return clientSecret;
+            try
+            {
+                var secret = _secretClient.GetSecret(keyName);
+                return secret.Value.Value;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Failed to retrieve client secret '{keyName}' from Key Vault: {ex.Message}", ex);
+            }
         }
     }
 }

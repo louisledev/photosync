@@ -460,7 +460,7 @@ If you need longer execution times, upgrade to a higher-tier plan:
 1. **Via Azure Portal:**
    - Go to Function App → Settings → Scale up (App Service Plan)
    - Select Premium Plan (EP1) or Dedicated Plan (S1)
-   - Update the `functionTimeout` in [src/host.json](src/host.json#L17):
+   - Update the `functionTimeout` in [src/host.json](src/host.json):
      ```json
      {
        "functionTimeout": "01:00:00"  // 60 minutes (or "-1" for unlimited on Dedicated)
@@ -480,7 +480,7 @@ If you need longer execution times, upgrade to a higher-tier plan:
      }
      ```
    - Run `terraform apply` to update both Function Apps
-   - Update [src/host.json](src/host.json#L17) and redeploy code
+   - Update [src/host.json](src/host.json) and redeploy code
 
 **Note:** Premium/Dedicated plans cost significantly more (~50-100x) than Consumption Plan. Only upgrade if you truly need longer execution times.
 

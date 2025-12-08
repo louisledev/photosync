@@ -52,7 +52,7 @@ Before running, you need to:
 
 ## 🔧 Key Features
 
-- **Automatic scheduling**: Runs every hour (consider decreasing once all existing photos have been processed to daily at 2 AM UTC)
+- **Automatic scheduling**: Runs every hour (consider changing to daily at 2 AM UTC once the initial sync is complete)
 - **Smart renaming**: Uses EXIF metadata to name files `YYYYMMDD_HHMMSS.jpg`
 - **Duplicate detection**: Won't re-process the same photos
 - **Large file support**: Handles files > 4MB with chunked upload

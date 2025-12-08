@@ -130,7 +130,11 @@ destination_client_secret_for_vault  = "your-client-secret"
 # Login to Azure
 az login
 
+# Set subscription ID environment variable
+export ARM_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+
 # Deploy with Terraform
+cd terraform
 terraform init
 terraform plan
 terraform apply

@@ -154,25 +154,26 @@ namespace PhotoSync
             stopwatch.Stop();
 
             _logger.LogInformation($"GetPhotosFromFolderAsync completed in {stopwatch.Elapsed.TotalSeconds:F2} seconds");
-            _logger.LogInformation($"Found {photos.Count} total files, processing up to {sourceConfig.MaxFilesPerRun} new files");
+            _logger.LogInformation($"Found {photos.Count} total files, processing up to {sourceConfig.MaxFilesPerRun} new files, deleting file after sync: {sourceConfig.DeleteAfterSync}");
 
             foreach (var photo in photos)
             {
                 var fileId = $"{sourceConfig.ClientId}:{photo.Id}";
+                _logger.LogInformation($"Processing file: {photo.Name} (ID: {fileId})");
 
                 if (processedFiles.Contains(fileId))
                 {
                     _logger.LogDebug($"Skipping already processed file: {photo.Name}");
                     continue;
                 }
-
+                
                 // Check if we've reached the max files per run limit
+                _logger.LogDebug($"Checking limit: processedCount={processedCount}, MaxFilesPerRun={sourceConfig.MaxFilesPerRun}");
                 if (processedCount >= sourceConfig.MaxFilesPerRun)
                 {
                     _logger.LogInformation($"Reached max files per run limit ({sourceConfig.MaxFilesPerRun}). Remaining files will be processed in the next run.");
                     break;
                 }
-
                 try
                 {
                     // Validate required properties
@@ -183,7 +184,11 @@ namespace PhotoSync
                     }
 
                     // Download photo
+                    var downloadStopwatch = System.Diagnostics.Stopwatch.StartNew();
                     var photoStream = await DownloadPhotoAsync(sourceClient, photo.Id);
+                    downloadStopwatch.Stop();
+                    var fileSizeMB = photoStream.Length / (1024.0 * 1024.0);
+                    _logger.LogInformation($"Downloaded {photo.Name} ({fileSizeMB:F2} MB) in {downloadStopwatch.Elapsed.TotalSeconds:F2}s ({fileSizeMB / (downloadStopwatch.Elapsed.TotalSeconds + 0.001):F2} MB/s)");
 
                     // Extract date and generate new filename
                     var dateTaken = ExtractDateFromPhoto(photoStream, photo.Name);
@@ -198,15 +203,19 @@ namespace PhotoSync
                     photoStream.Position = 0;
 
                     // Upload to destination with date-based folder structure
+                    var uploadStopwatch = System.Diagnostics.Stopwatch.StartNew();
                     await UploadPhotoAsync(
                         destinationClient,
                         destinationConfig.DestinationFolder,
                         newFileName,
                         photoStream,
                         dateTaken);
+                    uploadStopwatch.Stop();
+                    _logger.LogInformation($"Uploaded {newFileName} ({fileSizeMB:F2} MB) in {uploadStopwatch.Elapsed.TotalSeconds:F2}s ({fileSizeMB / (uploadStopwatch.Elapsed.TotalSeconds + 0.001):F2} MB/s)");
 
                     newFiles.Add(fileId);
                     processedCount++;
+                    _logger.LogDebug($"Incremented processedCount to {processedCount}");
 
                     // Log with folder path if date is available
                     var logPath = dateTaken.HasValue
@@ -224,6 +233,9 @@ namespace PhotoSync
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, $"Error processing file: {photo.Name}");
+                    _logger.LogInformation($"Exception thrown during processing of file {photo.Name}: Type: {ex.GetType().Name}, Message: '{ex.Message}',  StackTrace: {ex.StackTrace}");
+                    _logger.LogInformation("Exiting the sync loop to prevent further errors.");
+                    break;
                 }
             }
 
@@ -488,8 +500,7 @@ namespace PhotoSync
             var fileUploadTask = new Microsoft.Graph.LargeFileUploadTask<DriveItem>(
                 uploadSession,
                 photoStream,
-                maxChunkSize,
-                client.RequestAdapter);
+                maxChunkSize);
             #pragma warning restore CS0618
 
             await fileUploadTask.UploadAsync();

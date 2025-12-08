@@ -35,11 +35,10 @@ var host = new HostBuilder()
         // In .NET 8 isolated worker functions, Application Insights uses a default filter that blocks Information-level logs. Removing this filter ensures all logs are captured. See: https://stackoverflow.com/questions/77565541/logs-not-appearing-in-application-insights-for-azure-functions-v4-with-net-8
         logging.Services.Configure<LoggerFilterOptions>(options =>
         {
-            var defaultRule = options.Rules.FirstOrDefault(rule =>
-                rule.ProviderName == "Microsoft.Extensions.Logging.ApplicationInsights.ApplicationInsightsLoggerProvider");
-            if (defaultRule is not null)
+            foreach (var appInsightRule in options.Rules.Where(rule =>
+                rule.ProviderName == "Microsoft.Extensions.Logging.ApplicationInsights.ApplicationInsightsLoggerProvider").ToList())
             {
-                options.Rules.Remove(defaultRule);
+                options.Rules.Remove(appInsightRule);
             }
         });
     })

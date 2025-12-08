@@ -124,63 +124,54 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Trigger Source 1
-if [ "$TRIGGER_SOURCE1" = true ]; then
-    echo "=== Triggering $SOURCE1 ==="
-    RESPONSE=$(az functionapp function invoke \
-        --name $SOURCE1 \
-        --resource-group PhotoSyncRG \
-        --function-name ManualSync \
-        --no-prompt \
-        --output json 2>/dev/null)
+# Function to trigger a Function App
+trigger_function_app() {
+    local app_name="$1"
 
-    if [ $? -eq 0 ]; then
-        echo "✓ Successfully triggered $SOURCE1"
-        if [ ! -z "$RESPONSE" ]; then
-            echo "  Response: $RESPONSE"
-        fi
-    else
-        echo "✗ Failed to trigger $SOURCE1"
-        if [ ! -z "$RESPONSE" ]; then
-            echo "  Error: $RESPONSE"
-        fi
-    fi
-    echo ""
-fi
+    echo "=== Triggering $app_name ==="
 
-# Trigger Source 2
-if [ "$TRIGGER_SOURCE2" = true ]; then
-    echo "=== Triggering $SOURCE2 ==="
-    FUNCTION_KEY=$(az functionapp function keys list \
-        --name $SOURCE2 \
+    # Get function key (not stored in bash history)
+    local function_key=$(az functionapp function keys list \
+        --name "$app_name" \
         --resource-group PhotoSyncRG \
         --function-name ManualSync \
         --query "default" \
         -o tsv 2>/dev/null)
 
-    if [ -z "$FUNCTION_KEY" ]; then
-        echo "ERROR: Could not get function key for $SOURCE2"
-        exit 1
+    if [ -z "$function_key" ]; then
+        echo "ERROR: Could not get function key for $app_name"
+        return 1
     fi
 
-    RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
-        "https://$SOURCE2.azurewebsites.net/api/manualsync?code=$FUNCTION_KEY")
+    # Trigger the function using curl
+    local response=$(curl -s -w "\n%{http_code}" -X POST \
+        "https://$app_name.azurewebsites.net/api/manualsync?code=$function_key")
 
-    HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-    BODY=$(echo "$RESPONSE" | sed '$d')
+    local http_code=$(echo "$response" | tail -n1)
+    local body=$(echo "$response" | sed '$d')
 
-    if [ "$HTTP_CODE" = "200" ]; then
-        echo "✓ Successfully triggered $SOURCE2"
-        if [ ! -z "$BODY" ]; then
-            echo "  Response: $BODY"
+    if [ "$http_code" = "200" ]; then
+        echo "✓ Successfully triggered $app_name"
+        if [ ! -z "$body" ]; then
+            echo "  Response: $body"
         fi
     else
-        echo "✗ Failed to trigger $SOURCE2 (HTTP $HTTP_CODE)"
-        if [ ! -z "$BODY" ]; then
-            echo "  Error: $BODY"
+        echo "✗ Failed to trigger $app_name (HTTP $http_code)"
+        if [ ! -z "$body" ]; then
+            echo "  Error: $body"
         fi
     fi
     echo ""
+}
+
+# Trigger Source 1
+if [ "$TRIGGER_SOURCE1" = true ]; then
+    trigger_function_app "$SOURCE1"
+fi
+
+# Trigger Source 2
+if [ "$TRIGGER_SOURCE2" = true ]; then
+    trigger_function_app "$SOURCE2"
 fi
 
 # Show logs if requested

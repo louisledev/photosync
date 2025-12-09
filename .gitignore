@@ -6,6 +6,7 @@ publish/
 *.suo
 .vs/
 *.tfvars
+.env
 
 
 # Azure Functions

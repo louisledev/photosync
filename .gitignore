@@ -5,9 +5,12 @@ publish/
 *.user
 *.suo
 .vs/
+*.tfvars
+
 
 # Azure Functions
 local.settings.json
+appsettings.Development.json 
 
 # Build results
 [Dd]ebug/

@@ -43,22 +43,23 @@ PhotoSync uses multiple automated security scanning tools to ensure code quality
 
 ### 🛡️ Azure Security
 
-#### Runtime Security
-- **Microsoft Defender for Cloud**: Monitors deployed resources
+#### Runtime Security (Automated via Terraform)
+- **Log Analytics Workspace**: Centralized logging for all resources
+- **Diagnostic Settings**: Automatic logging for Function Apps and Key Vault
+- **Security Alerts**: Automated alerts for failures and anomalies
 - **Managed Identity**: Function Apps access Key Vault without passwords
 - **Key Vault**: Stores all secrets (refresh tokens, client secrets)
-- **Diagnostic Logging**: Audit logs for all security events
 
-#### Enable Azure Security
-Run the security setup script once:
-```bash
-./scripts/enable-azure-security.sh
-```
+#### Configured Automatically
+All security monitoring is configured automatically when you run `terraform apply`:
+- ✅ Log Analytics workspace creation
+- ✅ Diagnostic settings for Function Apps
+- ✅ Diagnostic settings for Key Vault (audit logs)
+- ✅ Alert rules for HTTP 5xx errors
+- ✅ Alert rules for Key Vault access failures
+- ✅ Alert rules for unusual file processing activity
 
-This configures:
-- Microsoft Defender for Cloud (free tier)
-- Diagnostic settings for Function Apps and Key Vault
-- Security alerts for Function App failures
+No manual setup required!
 
 ## Reporting a Vulnerability
 

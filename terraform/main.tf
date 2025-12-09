@@ -137,3 +137,18 @@ resource "azurerm_key_vault_access_policy" "function_app_source2" {
     "List"
   ]
 }
+
+# Security monitoring and alerts
+module "security" {
+  source = "./modules/security"
+
+  resource_prefix             = var.function_app_name_prefix
+  resource_group_name         = azurerm_resource_group.photosync.name
+  location                    = azurerm_resource_group.photosync.location
+  log_analytics_workspace_id  = module.application_insights.workspace_id
+  function_app_source1_id     = module.function_app_source1.function_app_id
+  function_app_source1_name   = module.function_app_source1.function_app_name
+  function_app_source2_id     = module.function_app_source2.function_app_id
+  function_app_source2_name   = module.function_app_source2.function_app_name
+  key_vault_id                = var.enable_keyvault ? module.keyvault[0].key_vault_id : ""
+}

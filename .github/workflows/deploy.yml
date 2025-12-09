@@ -33,6 +33,9 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore PhotoSync.sln
 
+      - name: Scan NuGet packages for known vulnerabilities
+        run: dotnet list PhotoSync.sln package --vulnerable --include-transitive
+
       - name: Build solution
         run: dotnet build PhotoSync.sln --configuration Release --no-restore
 

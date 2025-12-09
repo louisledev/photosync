@@ -24,3 +24,8 @@ output "name" {
   description = "Application Insights name"
   value       = azurerm_application_insights.photosync.name
 }
+
+output "workspace_id" {
+  description = "ID of the underlying Log Analytics workspace"
+  value       = azurerm_application_insights.photosync.workspace_id
+}

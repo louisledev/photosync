@@ -69,3 +69,14 @@ output "logs_portal_url" {
   description = "URL to view logs in Azure Portal"
   value       = "https://portal.azure.com/#@/resource${module.application_insights.id}/logs"
 }
+
+# Security monitoring outputs
+output "security_workspace_url" {
+  description = "URL to view Log Analytics workspace (used by App Insights) in Azure Portal"
+  value       = module.security.workspace_portal_url
+}
+
+output "security_alerts_url" {
+  description = "URL to view security alerts in Azure Portal"
+  value       = module.security.alerts_portal_url
+}

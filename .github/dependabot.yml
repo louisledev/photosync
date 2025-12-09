@@ -9,6 +9,14 @@ updates:
     labels:
       - "dependencies"
       - "dotnet"
+    # Auto-merge security updates
+    groups:
+      security-updates:
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+          - "minor"
 
   # .NET dependencies - Unit tests
   - package-ecosystem: "nuget"

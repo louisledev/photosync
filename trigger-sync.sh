@@ -37,6 +37,7 @@ open_url() {
         echo "Warning: Unknown platform. Please open the URL manually:"
         echo "$url"
     fi
+    return 0
 }
 
 # Get Function App names from Terraform

@@ -1,8 +1,9 @@
 #!/bin/bash
 
-# Error handling function
+# Error message function (prints to stderr)
 error() {
     echo "$@" >&2
+    return 1
 }
 
 echo "=== PhotoSync Manual Trigger Script ==="

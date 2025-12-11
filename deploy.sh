@@ -3,6 +3,7 @@
 # Error handling function
 error() {
     echo "$@" >&2
+    return 1
 }
 
 echo "=== PhotoSync Deployment Script ==="

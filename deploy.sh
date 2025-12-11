@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Error handling function
+error() {
+    echo "$@" >&2
+}
+
 echo "=== PhotoSync Deployment Script ==="
 echo ""
 
@@ -20,12 +25,12 @@ echo "=== Building and publishing project ==="
 cd src
 dotnet clean
 dotnet publish --configuration Release
-if [ $? -ne 0 ]; then
-    echo "ERROR: Build/publish failed!"
-    echo "Troubleshooting tips:"
-    echo "  - Check that .NET 8.0 SDK is installed (run: dotnet --version)"
-    echo "  - Review the build output above for specific errors"
-    echo "  - Ensure you are running this script from the project root directory"
+if [[ $? -ne 0 ]]; then
+    error "ERROR: Build/publish failed!"
+    error "Troubleshooting tips:"
+    error "  - Check that .NET 8.0 SDK is installed (run: dotnet --version)"
+    error "  - Review the build output above for specific errors"
+    error "  - Ensure you are running this script from the project root directory"
     exit 1
 fi
 echo ""
@@ -33,12 +38,12 @@ echo ""
 # Deploy to Source 1
 echo "=== Deploying to $SOURCE1 ==="
 func azure functionapp publish $SOURCE1
-if [ $? -ne 0 ]; then
-    echo "ERROR: Deployment to $SOURCE1 failed!"
-    echo "Troubleshooting tips:"
-    echo "  - Check that Azure CLI is logged in (run: az login)"
-    echo "  - Verify the Function App '$SOURCE1' exists in your Azure subscription"
-    echo "  - Ensure you have sufficient permissions to deploy to the Function App"
+if [[ $? -ne 0 ]]; then
+    error "ERROR: Deployment to $SOURCE1 failed!"
+    error "Troubleshooting tips:"
+    error "  - Check that Azure CLI is logged in (run: az login)"
+    error "  - Verify the Function App '$SOURCE1' exists in your Azure subscription"
+    error "  - Ensure you have sufficient permissions to deploy to the Function App"
     exit 1
 fi
 echo ""
@@ -49,12 +54,12 @@ sleep 3
 # Deploy to Source 2
 echo "=== Deploying to $SOURCE2 ==="
 func azure functionapp publish $SOURCE2
-if [ $? -ne 0 ]; then
-    echo "ERROR: Deployment to $SOURCE2 failed!"
-    echo "Troubleshooting tips:"
-    echo "  - Check that Azure CLI is logged in (run: az login)"
-    echo "  - Verify the Function App '$SOURCE2' exists in your Azure subscription"
-    echo "  - Ensure you have sufficient permissions to deploy to the Function App"
+if [[ $? -ne 0 ]]; then
+    error "ERROR: Deployment to $SOURCE2 failed!"
+    error "Troubleshooting tips:"
+    error "  - Check that Azure CLI is logged in (run: az login)"
+    error "  - Verify the Function App '$SOURCE2' exists in your Azure subscription"
+    error "  - Ensure you have sufficient permissions to deploy to the Function App"
     exit 1
 fi
 echo ""
@@ -72,7 +77,7 @@ echo ""
 echo "=== Deployment complete! ==="
 echo ""
 echo "To view logs in Application Insights:"
-if [ ! -z "$LOGS_URL" ]; then
+if [[ -n "$LOGS_URL" ]]; then
     echo "  $LOGS_URL"
 else
     echo "  Azure Portal → Application Insights → photosync-insights → Logs"

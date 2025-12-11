@@ -9,10 +9,10 @@
 set -e
 
 # Error handling function
-error_exit() {
+error() {
     message="$1"
     echo "❌ Error: $message" >&2
-    exit 1
+    return 1
 }
 
 # Configuration - Modify these values as needed
@@ -34,7 +34,7 @@ echo ""
 read -p "Continue? (y/n) " -n 1 -r
 echo ""
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "Cancelled."
+    error "Cancelled."
     exit 1
 fi
 
@@ -42,11 +42,15 @@ fi
 echo ""
 echo "Checking Azure CLI login status..."
 if ! az account show &> /dev/null; then
-    echo "Not logged in to Azure. Please run: az login"
+    error "Not logged in to Azure. Please run: az login"
     exit 1
 fi
 
-SUBSCRIPTION_ID=$(az account show --query id -o tsv 2>/dev/null) || error_exit "Failed to get Azure subscription ID"
+SUBSCRIPTION_ID=$(az account show --query id -o tsv 2>/dev/null)
+if [[ $? -ne 0 ]]; then
+    error "Failed to get Azure subscription ID"
+    exit 1
+fi
 echo "Using subscription: $SUBSCRIPTION_ID"
 
 # Create resource group (idempotent)
@@ -60,7 +64,8 @@ else
         --name "$RESOURCE_GROUP_NAME" \
         --location "$LOCATION" \
         --output table; then
-        error_exit "Failed to create resource group '$RESOURCE_GROUP_NAME'"
+        error "Failed to create resource group '$RESOURCE_GROUP_NAME'"
+        exit 1
     fi
     echo "✓ Resource group created"
 fi
@@ -84,7 +89,8 @@ else
         --min-tls-version TLS1_2 \
         --allow-blob-public-access false \
         --output table; then
-        error_exit "Failed to create storage account '$STORAGE_ACCOUNT_NAME'. The name must be globally unique."
+        error "Failed to create storage account '$STORAGE_ACCOUNT_NAME'. The name must be globally unique."
+        exit 1
     fi
     echo "✓ Storage account created"
 fi
@@ -95,10 +101,16 @@ echo "Retrieving storage account key..."
 STORAGE_KEY=$(az storage account keys list \
     --resource-group "$RESOURCE_GROUP_NAME" \
     --account-name "$STORAGE_ACCOUNT_NAME" \
-    --query '[0].value' -o tsv 2>/dev/null) || error_exit "Failed to retrieve storage account key"
+    --query '[0].value' -o tsv 2>/dev/null)
+
+if [[ $? -ne 0 ]]; then
+    error "Failed to retrieve storage account key"
+    exit 1
+fi
 
 if [[ -z "$STORAGE_KEY" ]]; then
-    error_exit "Storage account key is empty"
+    error "Storage account key is empty"
+    exit 1
 fi
 
 # Create blob container (idempotent)
@@ -108,7 +120,12 @@ CONTAINER_EXISTS=$(az storage container exists \
     --name "$CONTAINER_NAME" \
     --account-name "$STORAGE_ACCOUNT_NAME" \
     --account-key "$STORAGE_KEY" \
-    --query "exists" -o tsv 2>/dev/null) || error_exit "Failed to check if container exists"
+    --query "exists" -o tsv 2>/dev/null)
+
+if [[ $? -ne 0 ]]; then
+    error "Failed to check if container exists"
+    exit 1
+fi
 
 if [[ "$CONTAINER_EXISTS" == "true" ]]; then
     echo "✓ Blob container already exists"
@@ -119,7 +136,8 @@ else
         --account-name "$STORAGE_ACCOUNT_NAME" \
         --account-key "$STORAGE_KEY" \
         --output table; then
-        error_exit "Failed to create blob container '$CONTAINER_NAME'"
+        error "Failed to create blob container '$CONTAINER_NAME'"
+        exit 1
     fi
     echo "✓ Blob container created"
 fi
@@ -130,7 +148,12 @@ echo "Ensuring blob versioning is enabled..."
 VERSIONING_ENABLED=$(az storage account blob-service-properties show \
     --resource-group "$RESOURCE_GROUP_NAME" \
     --account-name "$STORAGE_ACCOUNT_NAME" \
-    --query "isVersioningEnabled" -o tsv 2>/dev/null) || error_exit "Failed to check blob versioning status"
+    --query "isVersioningEnabled" -o tsv 2>/dev/null)
+
+if [[ $? -ne 0 ]]; then
+    error "Failed to check blob versioning status"
+    exit 1
+fi
 
 if [[ "$VERSIONING_ENABLED" == "true" ]]; then
     echo "✓ Blob versioning already enabled"
@@ -141,7 +164,8 @@ else
         --account-name "$STORAGE_ACCOUNT_NAME" \
         --enable-versioning true \
         --output table; then
-        error_exit "Failed to enable blob versioning"
+        error "Failed to enable blob versioning"
+        exit 1
     fi
     echo "✓ Blob versioning enabled"
 fi

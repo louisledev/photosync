@@ -1,5 +1,12 @@
 #!/bin/bash
 # Enable Azure Security Features for PhotoSync
+
+# Error handling function
+error() {
+    echo "$@" >&2
+    return 1
+}
+
 set -e
 
 RESOURCE_GROUP="PhotoSyncRG"
@@ -73,7 +80,7 @@ echo ""
 echo "3. Enabling diagnostic settings for Key Vault..."
 KEY_VAULT_NAME=$(az keyvault list --resource-group "$RESOURCE_GROUP" --query '[0].name' -o tsv)
 
-if [ -n "$KEY_VAULT_NAME" ]; then
+if [[ -n "$KEY_VAULT_NAME" ]]; then
   KEY_VAULT_ID=$(az keyvault show --name "$KEY_VAULT_NAME" --query id -o tsv)
 
   az monitor diagnostic-settings create \

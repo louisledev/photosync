@@ -10,7 +10,8 @@ set -e
 
 # Error handling function
 error_exit() {
-    echo "❌ Error: $1" >&2
+    message="$1"
+    echo "❌ Error: $message" >&2
     exit 1
 }
 

@@ -23,7 +23,7 @@ INTEGRATION_TEST_STATUS=$?
 cd ../..
 
 # Check if tests passed
-if [ $UNIT_TEST_STATUS -ne 0 ] || [ $INTEGRATION_TEST_STATUS -ne 0 ]; then
+if [[ $UNIT_TEST_STATUS -ne 0 ]] || [[ $INTEGRATION_TEST_STATUS -ne 0 ]]; then
     echo ""
     echo "⚠️  Some tests failed, but continuing with coverage report generation..."
 fi
@@ -48,8 +48,8 @@ cat TestResults/coverage-report/Summary.txt 2>/dev/null || echo "Summary not ava
 
 echo ""
 echo "🧪 Test Results:"
-echo "  Unit Tests: $([ $UNIT_TEST_STATUS -eq 0 ] && echo '✅ PASSED' || echo '❌ FAILED')"
-echo "  Integration Tests: $([ $INTEGRATION_TEST_STATUS -eq 0 ] && echo '✅ PASSED' || echo '❌ FAILED')"
+echo "  Unit Tests: $([[ $UNIT_TEST_STATUS -eq 0 ]] && echo '✅ PASSED' || echo '❌ FAILED')"
+echo "  Integration Tests: $([[ $INTEGRATION_TEST_STATUS -eq 0 ]] && echo '✅ PASSED' || echo '❌ FAILED')"
 
 echo ""
 echo "🌐 Opening report in browser..."

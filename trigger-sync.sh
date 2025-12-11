@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Error message function (prints to stderr)
+error() {
+    echo "$@" >&2
+    return 1
+}
+
 echo "=== PhotoSync Manual Trigger Script ==="
 echo ""
 
@@ -39,9 +45,9 @@ SOURCE1=$(terraform output -raw function_app_source1_name 2>/dev/null)
 SOURCE2=$(terraform output -raw function_app_source2_name 2>/dev/null)
 cd ..
 
-if [ -z "$SOURCE1" ] || [ -z "$SOURCE2" ]; then
-    echo "ERROR: Could not get Function App names from Terraform"
-    echo "Make sure you're running this from the project root and Terraform has been applied"
+if [[ -z "$SOURCE1" ]] || [[ -z "$SOURCE2" ]]; then
+    error "ERROR: Could not get Function App names from Terraform"
+    error "Make sure you're running this from the project root and Terraform has been applied"
     exit 1
 fi
 
@@ -87,8 +93,8 @@ while [[ $# -gt 0 ]]; do
             exit 0
             ;;
         *)
-            echo "Unknown option: $1"
-            echo "Use --help for usage information"
+            error "Unknown option: $1"
+            error "Use --help for usage information"
             exit 1
             ;;
     esac
@@ -108,8 +114,8 @@ trigger_function_app() {
         --query "default" \
         -o tsv 2>/dev/null)
 
-    if [ -z "$function_key" ]; then
-        echo "ERROR: Could not get function key for $app_name"
+    if [[ -z "$function_key" ]]; then
+        error "ERROR: Could not get function key for $app_name"
         return 1
     fi
 
@@ -120,32 +126,32 @@ trigger_function_app() {
     local http_code=$(echo "$response" | tail -n1)
     local body=$(echo "$response" | sed '$d')
 
-    if [ "$http_code" = "200" ]; then
+    if [[ "$http_code" = "200" ]]; then
         echo "✓ Successfully triggered $app_name"
-        if [ ! -z "$body" ]; then
+        if [[ -n "$body" ]]; then
             echo "  Response: $body"
         fi
     else
-        echo "✗ Failed to trigger $app_name (HTTP $http_code)"
-        if [ ! -z "$body" ]; then
-            echo "  Error: $body"
+        error "✗ Failed to trigger $app_name (HTTP $http_code)"
+        if [[ -n "$body" ]]; then
+            error "  Error: $body"
         fi
     fi
     echo ""
 }
 
 # Trigger Source 1
-if [ "$TRIGGER_SOURCE1" = true ]; then
+if [[ "$TRIGGER_SOURCE1" = true ]]; then
     trigger_function_app "$SOURCE1"
 fi
 
 # Trigger Source 2
-if [ "$TRIGGER_SOURCE2" = true ]; then
+if [[ "$TRIGGER_SOURCE2" = true ]]; then
     trigger_function_app "$SOURCE2"
 fi
 
 # Show logs if requested
-if [ "$SHOW_LOGS" = true ]; then
+if [[ "$SHOW_LOGS" = true ]]; then
     echo "=== Opening Application Insights logs ==="
 
     # Get Application Insights URL from Terraform
@@ -153,14 +159,14 @@ if [ "$SHOW_LOGS" = true ]; then
     LOGS_URL=$(terraform output -raw logs_portal_url 2>/dev/null)
     cd ..
 
-    if [ ! -z "$LOGS_URL" ]; then
+    if [[ -n "$LOGS_URL" ]]; then
         echo "Opening Application Insights..."
         open_url "$LOGS_URL"
     else
         echo "Application Insights not found. Opening Function App logs instead..."
-        if [ "$TRIGGER_SOURCE1" = true ] && [ "$TRIGGER_SOURCE2" = false ]; then
+        if [[ "$TRIGGER_SOURCE1" = true ]] && [[ "$TRIGGER_SOURCE2" = false ]]; then
             open_url "https://portal.azure.com/#@/resource/subscriptions/$(az account show --query id -o tsv)/resourceGroups/PhotoSyncRG/providers/Microsoft.Web/sites/$SOURCE1/appServices"
-        elif [ "$TRIGGER_SOURCE2" = true ] && [ "$TRIGGER_SOURCE1" = false ]; then
+        elif [[ "$TRIGGER_SOURCE2" = true ]] && [[ "$TRIGGER_SOURCE1" = false ]]; then
             open_url "https://portal.azure.com/#@/resource/subscriptions/$(az account show --query id -o tsv)/resourceGroups/PhotoSyncRG/providers/Microsoft.Web/sites/$SOURCE2/appServices"
         else
             open_url "https://portal.azure.com/#@/resource/subscriptions/$(az account show --query id -o tsv)/resourceGroups/PhotoSyncRG/providers/Microsoft.Web/sites/$SOURCE1/appServices"

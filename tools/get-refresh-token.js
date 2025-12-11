@@ -13,9 +13,9 @@
  * 4. Displays the refresh token (store this in Azure Key Vault)
  */
 
-const http = require('http');
-const url = require('url');
-const { spawn } = require('child_process');
+const http = require('node:http');
+const url = require('node:url');
+const { spawn } = require('node:child_process');
 
 // Configuration
 const REDIRECT_URI = 'http://localhost:8080/callback';

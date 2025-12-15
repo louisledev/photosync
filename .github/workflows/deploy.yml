@@ -84,7 +84,7 @@ jobs:
 
     steps:
       - name: Download artifact from build job
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: function-app
           path: ${{ env.OUTPUT_PATH }}

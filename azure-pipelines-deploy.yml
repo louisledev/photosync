@@ -11,9 +11,7 @@ resources:
       branches:
         include:
         - main
-      tags:
-        include:
-        - 'v*'
+        - refs/tags/*
 
 pool:
   vmImage: ubuntu-latest

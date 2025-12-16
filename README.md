@@ -37,6 +37,9 @@ photosync/
 │   ├── TERRAFORM.md          # Terraform deployment guide
 │   └── .gitignore           # Terraform-specific ignores
 │
+├── azure-pipelines-ci.yml    # Azure Pipelines CI (TESTING ONLY)
+├── azure-pipelines-cd.yml    # Azure Pipelines CD (TESTING ONLY)
+│
 └── *.md                      # Documentation files
 ```
 
@@ -305,6 +308,8 @@ After changing, redeploy the code to both Function Apps.
 ## Continuous Deployment with GitHub Actions
 
 The project includes a GitHub Actions workflow that automatically builds, tests, and deploys your code to Azure when you push to the `main` branch.
+
+> **Note:** This project also includes Azure Pipelines configuration files (`azure-pipelines-ci.yml` and `azure-pipelines-cd.yml`) for **testing purposes only**. These are not currently functional and are used for experimenting with Azure Pipelines. **GitHub Actions remains the primary CI/CD solution for this project.**
 
 ### Setup GitHub Actions Deployment
 

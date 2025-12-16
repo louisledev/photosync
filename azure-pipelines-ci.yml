@@ -51,7 +51,7 @@ steps:
 
 - script: |
     cd src
-    dotnet publish PhotoSync.csproj --configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/function-app
+    dotnet publish PhotoSync.csproj --configuration $(buildConfiguration) --no-restore --output $(Build.ArtifactStagingDirectory)/function-app
   displayName: 'Publish function app'
   condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/tags/')))
 

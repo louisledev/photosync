@@ -1,0 +1,50 @@
+# Deploy pipeline - triggered by build pipeline completion
+trigger: none
+pr: none
+
+# Triggered when build pipeline completes on main branch or version tags
+resources:
+  pipelines:
+  - pipeline: buildPipeline
+    source: 'photosync-ci' # Name of the build pipeline
+    trigger:
+      branches:
+        include:
+        - main
+      tags:
+        include:
+        - 'v*'
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  OUTPUT_PATH: 'output'
+
+steps:
+- script: |
+    echo "========================================="
+    echo "Deploy Pipeline Triggered"
+    echo "========================================="
+    echo "Build Source Branch: $(Build.SourceBranch)"
+    echo "Build Source Version: $(Build.SourceVersion)"
+    echo "Build Reason: $(Build.Reason)"
+    echo ""
+    if [[ "$(Build.SourceBranch)" == "refs/heads/main" ]]; then
+      echo "Triggered by: Build completion on MAIN branch"
+    elif [[ "$(Build.SourceBranch)" == refs/tags/* ]]; then
+      TAG_NAME="${Build.SourceBranch#refs/tags/}"
+      echo "Triggered by: Build completion on VERSION TAG: $TAG_NAME"
+    else
+      echo "Triggered by: Build completion on branch: $(Build.SourceBranch)"
+    fi
+    echo "========================================="
+  displayName: 'Display pipeline trigger information'
+
+- script: |
+    echo "This is where deployment steps would go..."
+    echo "For example:"
+    echo "  - Download build artifacts"
+    echo "  - Login to Azure"
+    echo "  - Deploy to Azure Function Apps"
+  displayName: 'Placeholder for deployment steps'

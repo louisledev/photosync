@@ -31,9 +31,6 @@ steps:
     if [[ "$(resources.pipeline.buildPipeline.sourceBranch)" == "refs/heads/main" ]]; then
       echo "✓ Triggered by: Build completion on MAIN branch"
       echo "✓ Deployment will proceed"
-    elif [[ "$(resources.pipeline.buildPipeline.sourceBranch)" == "refs/heads/azure-pipelines" ]]; then
-      echo "✓ Triggered by: Build completion on AZURE-PIPELINES branch (TESTING)"
-      echo "✓ Deployment will proceed for testing purposes"
     elif [[ "$(resources.pipeline.buildPipeline.sourceBranch)" == refs/tags/* ]]; then
       SOURCE_BRANCH="$(resources.pipeline.buildPipeline.sourceBranch)"
       TAG_NAME="${SOURCE_BRANCH#refs/tags/}"
@@ -53,4 +50,4 @@ steps:
     echo "  - Login to Azure"
     echo "  - Deploy to Azure Function Apps"
   displayName: 'Placeholder for deployment steps'
-  condition: or(eq(variables['resources.pipeline.buildPipeline.sourceBranch'], 'refs/heads/main'), eq(variables['resources.pipeline.buildPipeline.sourceBranch'], 'refs/heads/azure-pipelines'), startsWith(variables['resources.pipeline.buildPipeline.sourceBranch'], 'refs/tags/'))
+  condition: or(eq(variables['resources.pipeline.buildPipeline.sourceBranch'], 'refs/heads/main'), startsWith(variables['resources.pipeline.buildPipeline.sourceBranch'], 'refs/tags/'))

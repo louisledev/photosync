@@ -66,7 +66,7 @@ jobs:
           ls -la ${{ github.workspace }}/${{ env.OUTPUT_PATH }}/.azurefunctions || echo ".azurefunctions folder not found"
 
       - name: Upload artifact for deployment
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: function-app
           path: ${{ github.workspace }}/${{ env.OUTPUT_PATH }}

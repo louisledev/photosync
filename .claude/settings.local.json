@@ -21,7 +21,8 @@
       "Bash(dotnet clean:*)",
       "Bash(dotnet list:*)",
       "Bash(/usr/local/share/dotnet/dotnet build:*)",
-      "Bash(az monitor app-insights query:*)"
+      "Bash(az monitor app-insights query:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []

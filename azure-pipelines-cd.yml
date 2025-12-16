@@ -10,8 +10,7 @@ resources:
     source: 'photosync-ci' # Name of the build pipeline
     trigger:
       tags:
-        include:
-        - deploy
+      - deploy
 
 pool:
   vmImage: ubuntu-latest

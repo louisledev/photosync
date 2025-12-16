@@ -2,13 +2,16 @@
 trigger: none
 pr: none
 
-# Triggered when build pipeline completes successfully
-# Filters for main branch or tags are applied in step conditions
+# Triggered when build pipeline completes successfully with 'deploy' tag
+# The build pipeline adds a 'deploy' tag when triggered on main branch or Git tags
 resources:
   pipelines:
   - pipeline: buildPipeline
     source: 'photosync-ci' # Name of the build pipeline
-    trigger: true  # Trigger on all successful completions
+    trigger:
+      tags:
+        include:
+        - deploy
 
 pool:
   vmImage: ubuntu-latest
@@ -29,6 +32,9 @@ steps:
     if [[ "$(resources.pipeline.buildPipeline.sourceBranch)" == "refs/heads/main" ]]; then
       echo "✓ Triggered by: Build completion on MAIN branch"
       echo "✓ Deployment will proceed"
+    elif [[ "$(resources.pipeline.buildPipeline.sourceBranch)" == "refs/heads/azure-pipelines" ]]; then
+      echo "✓ Triggered by: Build completion on AZURE-PIPELINES branch (TESTING)"
+      echo "✓ Deployment will proceed for testing purposes"
     elif [[ "$(resources.pipeline.buildPipeline.sourceBranch)" == refs/tags/* ]]; then
       TAG_NAME="${resources.pipeline.buildPipeline.sourceBranch#refs/tags/}"
       echo "✓ Triggered by: Build completion on VERSION TAG: $TAG_NAME"
@@ -47,4 +53,4 @@ steps:
     echo "  - Login to Azure"
     echo "  - Deploy to Azure Function Apps"
   displayName: 'Placeholder for deployment steps'
-  condition: or(eq(variables['resources.pipeline.buildPipeline.sourceBranch'], 'refs/heads/main'), startsWith(variables['resources.pipeline.buildPipeline.sourceBranch'], 'refs/tags/'))
+  condition: or(eq(variables['resources.pipeline.buildPipeline.sourceBranch'], 'refs/heads/main'), eq(variables['resources.pipeline.buildPipeline.sourceBranch'], 'refs/heads/azure-pipelines'), startsWith(variables['resources.pipeline.buildPipeline.sourceBranch'], 'refs/tags/'))

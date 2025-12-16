@@ -62,3 +62,9 @@ steps:
     PathtoPublish: '$(Build.ArtifactStagingDirectory)/function-app'
     ArtifactName: 'function-app'
     publishLocation: 'Container'
+
+- script: |
+    echo "##vso[build.addbuildtag]deploy"
+    echo "Pipeline tagged with 'deploy' for deployment trigger"
+  displayName: 'Tag pipeline for deployment'
+  condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/tags/')))

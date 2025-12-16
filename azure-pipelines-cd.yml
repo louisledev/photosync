@@ -1,0 +1,53 @@
+# Deploy pipeline - triggered by build pipeline completion
+trigger: none
+pr: none
+
+# Triggered when build pipeline completes successfully with 'deploy' tag
+# The build pipeline adds a 'deploy' tag when triggered on main branch or Git tags
+resources:
+  pipelines:
+  - pipeline: buildPipeline
+    source: 'photosync-ci' # Name of the build pipeline
+    trigger:
+      tags:
+      - deploy
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  OUTPUT_PATH: 'output'
+
+steps:
+- script: |
+    echo "========================================="
+    echo "Deploy Pipeline Triggered"
+    echo "========================================="
+    echo "Build Source Branch: $(resources.pipeline.buildPipeline.sourceBranch)"
+    echo "Build Source Version: $(resources.pipeline.buildPipeline.sourceCommit)"
+    echo "Build Reason: $(Build.Reason)"
+    echo "Run ID: $(resources.pipeline.buildPipeline.runID)"
+    echo ""
+    if [[ "$(resources.pipeline.buildPipeline.sourceBranch)" == "refs/heads/main" ]]; then
+      echo "✓ Triggered by: Build completion on MAIN branch"
+      echo "✓ Deployment will proceed"
+    elif [[ "$(resources.pipeline.buildPipeline.sourceBranch)" == refs/tags/* ]]; then
+      SOURCE_BRANCH="$(resources.pipeline.buildPipeline.sourceBranch)"
+      TAG_NAME="${SOURCE_BRANCH#refs/tags/}"
+      echo "✓ Triggered by: Build completion on VERSION TAG: $TAG_NAME"
+      echo "✓ Deployment will proceed"
+    else
+      echo "✗ Triggered by: Build completion on branch: $(resources.pipeline.buildPipeline.sourceBranch)"
+      echo "✗ Deployment will be SKIPPED (only main branch and tags are deployed)"
+    fi
+    echo "========================================="
+  displayName: 'Display pipeline trigger information'
+
+- script: |
+    echo "This is where deployment steps would go..."
+    echo "For example:"
+    echo "  - Download build artifacts"
+    echo "  - Login to Azure"
+    echo "  - Deploy to Azure Function Apps"
+  displayName: 'Placeholder for deployment steps'
+  condition: or(eq(variables['resources.pipeline.buildPipeline.sourceBranch'], 'refs/heads/main'), startsWith(variables['resources.pipeline.buildPipeline.sourceBranch'], 'refs/tags/'))

@@ -1,0 +1,70 @@
+trigger:
+  branches:
+    include:
+    - main
+  tags:
+    include:
+    - 'v*'  # Triggers on tags like v1.0.0, v2.1.3, etc.
+
+pr:
+  branches:
+    include:
+    - main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  DOTNET_VERSION: '9.0.x'
+  buildConfiguration: 'Release'
+
+steps:
+- task: UseDotNet@2
+  displayName: 'Setup .NET'
+  inputs:
+    packageType: 'sdk'
+    version: $(DOTNET_VERSION)
+
+- script: dotnet restore PhotoSync.sln
+  displayName: 'Restore dependencies'
+
+- script: dotnet list PhotoSync.sln package --vulnerable --include-transitive
+  displayName: 'Scan NuGet packages for known vulnerabilities'
+
+- script: dotnet build PhotoSync.sln --configuration $(buildConfiguration) --no-restore
+  displayName: 'Build solution'
+
+- script: dotnet test tests/PhotoSync.Tests/PhotoSync.Tests.csproj --configuration $(buildConfiguration) --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx"
+  displayName: 'Run unit tests'
+
+- script: dotnet test tests/PhotoSync.IntegrationTests/PhotoSync.IntegrationTests.csproj --configuration $(buildConfiguration) --no-build --verbosity normal --logger "trx;LogFileName=integration-test-results.trx"
+  displayName: 'Run integration tests'
+
+- task: PublishTestResults@2
+  displayName: 'Publish test results'
+  condition: always()
+  inputs:
+    testResultsFormat: 'VSTest'
+    testResultsFiles: '**/*.trx'
+    mergeTestResults: true
+    failTaskOnFailedTests: true
+
+- script: |
+    cd src
+    dotnet publish PhotoSync.csproj --configuration $(buildConfiguration) --no-restore --output $(Build.ArtifactStagingDirectory)/function-app
+  displayName: 'Publish function app'
+  condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/tags/')))
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish build artifacts'
+  condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/tags/')))
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)/function-app'
+    ArtifactName: 'function-app'
+    publishLocation: 'Container'
+
+- script: |
+    echo "##vso[build.addbuildtag]deploy"
+    echo "Pipeline tagged with 'deploy' for deployment trigger"
+  displayName: 'Tag pipeline for deployment'
+  condition: and(succeeded(), or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/tags/')))

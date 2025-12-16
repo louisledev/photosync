@@ -46,4 +46,5 @@ terraform/*.tfstate.*
 terraform/terraform.tfvars
 terraform/.terraform.lock.hcl
 
-.vscode/settings.json
+.vscode/
+.idea/

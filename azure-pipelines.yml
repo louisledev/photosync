@@ -1,19 +1,40 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
 trigger:
 - main
 
 pool:
   vmImage: ubuntu-latest
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+variables:
+  DOTNET_VERSION: '8.0.x'
+  buildConfiguration: 'Release'
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+steps:
+- task: UseDotNet@2
+  displayName: 'Setup .NET'
+  inputs:
+    packageType: 'sdk'
+    version: $(DOTNET_VERSION)
+
+- script: dotnet restore PhotoSync.sln
+  displayName: 'Restore dependencies'
+
+- script: dotnet list PhotoSync.sln package --vulnerable --include-transitive
+  displayName: 'Scan NuGet packages for known vulnerabilities'
+
+- script: dotnet build PhotoSync.sln --configuration $(buildConfiguration) --no-restore
+  displayName: 'Build solution'
+
+- script: dotnet test tests/PhotoSync.Tests/PhotoSync.Tests.csproj --configuration $(buildConfiguration) --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx"
+  displayName: 'Run unit tests'
+
+- script: dotnet test tests/PhotoSync.IntegrationTests/PhotoSync.IntegrationTests.csproj --configuration $(buildConfiguration) --no-build --verbosity normal --logger "trx;LogFileName=integration-test-results.trx"
+  displayName: 'Run integration tests'
+
+- task: PublishTestResults@2
+  displayName: 'Publish test results'
+  condition: always()
+  inputs:
+    testResultsFormat: 'VSTest'
+    testResultsFiles: '**/*.trx'
+    mergeTestResults: true
+    failTaskOnFailedTests: true

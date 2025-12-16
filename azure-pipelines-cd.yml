@@ -35,7 +35,8 @@ steps:
       echo "✓ Triggered by: Build completion on AZURE-PIPELINES branch (TESTING)"
       echo "✓ Deployment will proceed for testing purposes"
     elif [[ "$(resources.pipeline.buildPipeline.sourceBranch)" == refs/tags/* ]]; then
-      TAG_NAME="${resources.pipeline.buildPipeline.sourceBranch#refs/tags/}"
+      SOURCE_BRANCH="$(resources.pipeline.buildPipeline.sourceBranch)"
+      TAG_NAME="${SOURCE_BRANCH#refs/tags/}"
       echo "✓ Triggered by: Build completion on VERSION TAG: $TAG_NAME"
       echo "✓ Deployment will proceed"
     else

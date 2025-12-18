@@ -1,6 +1,7 @@
 # Photo Sync Azure Function
 
-[![Build and Deploy](https://github.com/louisledev/photosync/actions/workflows/deploy.yml/badge.svg)](https://github.com/louisledev/photosync/actions/workflows/deploy.yml)
+[![Build and Test](https://github.com/louisledev/photosync/actions/workflows/build-test.yml/badge.svg)](https://github.com/louisledev/photosync/actions/workflows/build-test.yml)
+[![Deploy to Azure](https://github.com/louisledev/photosync/actions/workflows/deploy.yml/badge.svg)](https://github.com/louisledev/photosync/actions/workflows/deploy.yml)
 [![Security Scanning](https://github.com/louisledev/photosync/actions/workflows/codeql.yml/badge.svg)](https://github.com/louisledev/photosync/actions/workflows/codeql.yml)
 [![Security Best Practices](https://github.com/louisledev/photosync/actions/workflows/security-checklist.yml/badge.svg)](https://github.com/louisledev/photosync/actions/workflows/security-checklist.yml)
 

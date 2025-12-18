@@ -3,11 +3,6 @@ name: Security Best Practices Check
 on:
   pull_request:
     branches: [ main ]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - '.gitignore'
-      - 'LICENSE'
   workflow_dispatch:
 
 jobs:
@@ -21,8 +16,25 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check for code changes
+        id: check_changes
+        run: |
+          changed_files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          if echo "$changed_files" | grep -qvE '\.(md|gitignore)$|^docs/|^LICENSE'; then
+            echo "should_check=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_check=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Skip check notification
+        if: steps.check_changes.outputs.should_check == 'false'
+        run: echo "⏭️  Skipping security checks - only documentation files changed"
 
       - name: Check for hardcoded secrets
+        if: steps.check_changes.outputs.should_check == 'true'
         run: |
           echo "Checking for potential hardcoded secrets..."
 
@@ -55,6 +67,7 @@ jobs:
           fi
 
       - name: Check for security headers
+        if: steps.check_changes.outputs.should_check == 'true'
         run: |
           echo "Checking for security configurations..."
 
@@ -66,6 +79,7 @@ jobs:
           echo "✓ Security configuration check complete"
 
       - name: Verify sensitive files are gitignored
+        if: steps.check_changes.outputs.should_check == 'true'
         run: |
           echo "Verifying .gitignore includes sensitive files..."
 
@@ -93,11 +107,13 @@ jobs:
           fi
 
       - name: Check dependency licenses
+        if: steps.check_changes.outputs.should_check == 'true'
         run: |
           echo "Checking for problematic licenses..."
           echo "✓ License check complete (handled by dependency-review action)"
 
       - name: Verify minimal permissions
+        if: steps.check_changes.outputs.should_check == 'true'
         run: |
           echo "Checking Azure resource configurations..."
 
@@ -111,7 +127,7 @@ jobs:
           echo "✓ Permission check complete"
 
       - name: Security Report
-        if: always()
+        if: steps.check_changes.outputs.should_check == 'true' && always()
         run: |
           echo "## Security Checklist Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

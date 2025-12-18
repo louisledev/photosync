@@ -10,11 +10,6 @@ on:
       - 'LICENSE'
   pull_request:
     branches: [ main ]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - '.gitignore'
-      - 'LICENSE'
   schedule:
     # Run security scan every Monday at 6 AM UTC
     - cron: '0 6 * * 1'
@@ -41,13 +36,35 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check for code changes
+        id: check_changes
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            changed_files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+            if echo "$changed_files" | grep -qvE '\.(md|gitignore)$|^docs/|^LICENSE'; then
+              echo "should_scan=true" >> $GITHUB_OUTPUT
+            else
+              echo "should_scan=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "should_scan=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Skip scan notification
+        if: steps.check_changes.outputs.should_scan == 'false'
+        run: echo "⏭️  Skipping CodeQL scan - only documentation files changed"
 
       - name: Setup .NET
+        if: steps.check_changes.outputs.should_scan == 'true'
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Initialize CodeQL
+        if: steps.check_changes.outputs.should_scan == 'true'
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
@@ -55,12 +72,15 @@ jobs:
           queries: security-and-quality
 
       - name: Restore dependencies
+        if: steps.check_changes.outputs.should_scan == 'true'
         run: dotnet restore PhotoSync.sln
 
       - name: Build solution
+        if: steps.check_changes.outputs.should_scan == 'true'
         run: dotnet build PhotoSync.sln --configuration Release --no-restore
 
       - name: Perform CodeQL Analysis
+        if: steps.check_changes.outputs.should_scan == 'true'
         uses: github/codeql-action/analyze@v4
         with:
           category: "/language:${{matrix.language}}"

@@ -1,0 +1,117 @@
+name: Build and Test
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'LICENSE'
+  pull_request:
+    branches:
+      - main  # No paths-ignore for PRs to satisfy branch protection
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: './src'
+  OUTPUT_PATH: 'output'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check for code changes
+        id: check_changes
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # Get list of changed files in PR
+            changed_files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+            echo "Changed files:"
+            echo "$changed_files"
+
+            # Check if any non-docs files changed
+            if echo "$changed_files" | grep -qvE '\.(md|gitignore)$|^docs/|^LICENSE'; then
+              echo "Code changes detected"
+              echo "should_build=true" >> $GITHUB_OUTPUT
+            else
+              echo "Only documentation changes detected"
+              echo "should_build=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            # Always build for push events
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Skip build notification
+        if: steps.check_changes.outputs.should_build == 'false'
+        run: |
+          echo "⏭️  Skipping build - only documentation files changed"
+          echo "This is expected behavior to save CI resources"
+
+      - name: Setup .NET
+        if: steps.check_changes.outputs.should_build == 'true'
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        if: steps.check_changes.outputs.should_build == 'true'
+        run: dotnet restore PhotoSync.sln
+
+      - name: Scan NuGet packages for known vulnerabilities
+        if: steps.check_changes.outputs.should_build == 'true'
+        run: dotnet list PhotoSync.sln package --vulnerable --include-transitive
+
+      - name: Build solution
+        if: steps.check_changes.outputs.should_build == 'true'
+        run: dotnet build PhotoSync.sln --configuration Release --no-restore
+
+      - name: Run unit tests
+        if: steps.check_changes.outputs.should_build == 'true'
+        run: dotnet test tests/PhotoSync.Tests/PhotoSync.Tests.csproj --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx"
+
+      - name: Run integration tests
+        if: steps.check_changes.outputs.should_build == 'true'
+        run: dotnet test tests/PhotoSync.IntegrationTests/PhotoSync.IntegrationTests.csproj --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=integration-test-results.trx"
+
+      - name: Publish test results
+        if: steps.check_changes.outputs.should_build == 'true' && always()
+        uses: dorny/test-reporter@v2
+        with:
+          name: Test Results
+          path: '**/*.trx'
+          reporter: dotnet-trx
+
+      - name: Publish function app
+        if: steps.check_changes.outputs.should_build == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          cd ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
+          dotnet publish PhotoSync.csproj --configuration Release --output ${{ github.workspace }}/${{ env.OUTPUT_PATH }}
+
+      - name: Verify .azurefunctions folder exists
+        if: steps.check_changes.outputs.should_build == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          echo "Contents of output directory:"
+          ls -la ${{ github.workspace }}/${{ env.OUTPUT_PATH }}
+          echo "Checking for .azurefunctions folder:"
+          ls -la ${{ github.workspace }}/${{ env.OUTPUT_PATH }}/.azurefunctions || echo ".azurefunctions folder not found"
+
+      - name: Upload artifact for deployment
+        if: steps.check_changes.outputs.should_build == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v6
+        with:
+          name: function-app
+          path: ${{ github.workspace }}/${{ env.OUTPUT_PATH }}
+          include-hidden-files: true

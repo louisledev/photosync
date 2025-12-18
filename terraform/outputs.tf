@@ -46,7 +46,7 @@ output "key_vault_uri" {
 
 output "setup_instructions" {
   description = "Next steps for completing setup"
-  value       = var.enable_keyvault ? "See Key Vault setup instructions in PERSONAL_ACCOUNTS_SETUP.md" : "Standard deployment - see README.md"
+  value       = var.enable_keyvault ? "See Key Vault setup instructions in docs/PERSONAL_ACCOUNTS_SETUP.md" : "Standard deployment - see README.md"
 }
 
 output "application_insights_name" {

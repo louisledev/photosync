@@ -3,8 +3,18 @@ name: Security Scanning
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'LICENSE'
   pull_request:
     branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'LICENSE'
   schedule:
     # Run security scan every Monday at 6 AM UTC
     - cron: '0 6 * * 1'

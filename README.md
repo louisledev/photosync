@@ -1,5 +1,9 @@
 # Photo Sync Azure Function
 
+[![Build and Deploy](https://github.com/louisledev/photosync/actions/workflows/deploy.yml/badge.svg)](https://github.com/louisledev/photosync/actions/workflows/deploy.yml)
+[![Security Scanning](https://github.com/louisledev/photosync/actions/workflows/codeql.yml/badge.svg)](https://github.com/louisledev/photosync/actions/workflows/codeql.yml)
+[![Security Best Practices](https://github.com/louisledev/photosync/actions/workflows/security-checklist.yml/badge.svg)](https://github.com/louisledev/photosync/actions/workflows/security-checklist.yml)
+
 Automated solution for syncing family photos from multiple OneDrive accounts into a single consolidated location. This Azure Function runs daily, downloads photos, renames them based on EXIF metadata, and uploads to a destination OneDrive account.
 
 ## Project Structure
@@ -130,7 +134,7 @@ graph TB
 - **Application Insights**: Centralized monitoring and logging for both apps
 - **Optional Source Deletion**: Configurable per Function App to delete source files after successful upload (prevents duplication)
 
-See [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) for details on the architecture and benefits.
+See [PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md) for details on the architecture and benefits.
 
 ## Prerequisites
 
@@ -153,7 +157,7 @@ brew install azure-functions-core-tools@4
 
 **This guide is for Personal Microsoft Accounts Only**
 
-This project is designed for **personal Microsoft accounts** (outlook.com, hotmail.com, live.com) using refresh token authentication. See [QUICKSTART.md](QUICKSTART.md) for a quick start guide or [PERSONAL_ACCOUNTS_SETUP.md](PERSONAL_ACCOUNTS_SETUP.md) for detailed instructions.
+This project is designed for **personal Microsoft accounts** (outlook.com, hotmail.com, live.com) using refresh token authentication. See [QUICKSTART.md](docs/QUICKSTART.md) for a quick start guide or [PERSONAL_ACCOUNTS_SETUP.md](docs/PERSONAL_ACCOUNTS_SETUP.md) for detailed instructions.
 
 ### Step 1: Register ONE Azure AD Application
 
@@ -440,7 +444,7 @@ The HTML report shows:
 - **StateManagerIntegrationTests**: End-to-end tests with real Azure Table Storage via Testcontainers
 - Requires Docker to be running
 
-For detailed testing and coverage documentation, see [COVERAGE_GUIDE.md](COVERAGE_GUIDE.md).
+For detailed testing and coverage documentation, see [COVERAGE_GUIDE.md](docs/COVERAGE_GUIDE.md).
 
 ## File Naming Convention
 
@@ -631,7 +635,7 @@ module "function_app_source3" {
 2. Deploy the new Function App and publish code to it
 3. Each Function App runs independently with complete isolation
 
-See [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md) for more details on the modular architecture.
+See [PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md) for more details on the modular architecture.
 
 ### Add NAS Sync
 

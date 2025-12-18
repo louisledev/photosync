@@ -110,4 +110,4 @@ After obtaining the refresh token:
      --secret-permissions get list
    ```
 
-See [PERSONAL_ACCOUNTS_SETUP.md](../PERSONAL_ACCOUNTS_SETUP.md) for complete documentation.
+See [PERSONAL_ACCOUNTS_SETUP.md](../docs/PERSONAL_ACCOUNTS_SETUP.md) for complete documentation.

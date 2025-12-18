@@ -24,7 +24,7 @@ Welcome! This project automates syncing family photos from multiple OneDrive acc
 ### Path 2: Detailed Setup 📚
 **Time: ~1 hour (includes understanding everything)**
 
-1. Read [README.md](README.md) for comprehensive documentation
+1. Read [README.md](../README.md) for comprehensive documentation
 2. Use [SETUP_CHECKLIST.md](SETUP_CHECKLIST.md) to track your progress
 3. Refer back as needed
 
@@ -37,7 +37,7 @@ Welcome! This project automates syncing family photos from multiple OneDrive acc
 - **terraform/** - Infrastructure deployment (Terraform)
 
 ### Reference Documentation
-- **README.md** - Complete documentation and customization options
+- **README.md** - Complete documentation and customization options (in root folder)
 - **terraform/TERRAFORM.md** - Infrastructure deployment guide
 - **.github/DEPLOYMENT.md** - CI/CD with GitHub Actions
 
@@ -176,10 +176,13 @@ A: By date in folders like `2025/2025-12/` with filenames like `20231225_143022.
 
 ```
 PhotoSync/
-├── START_HERE.md              ← You are here!
-├── PROJECT_OVERVIEW.md        ← Architecture overview and two Function App design
-├── README.md                  ← Complete documentation
-├── QUICKSTART.md              ← Local development setup
+├── README.md                  ← Complete documentation (root)
+├── docs/
+│   ├── START_HERE.md          ← You are here!
+│   ├── PROJECT_OVERVIEW.md    ← Architecture overview
+│   ├── QUICKSTART.md          ← Quick start guide
+│   ├── PERSONAL_ACCOUNTS_SETUP.md ← Detailed setup
+│   └── ...                    ← Other documentation
 │
 ├── src/                       ← C# Source Code
 │   ├── PhotoSyncFunction.cs   ← Main sync logic

@@ -166,7 +166,7 @@ function startCallbackServer() {
                 console.log('     --value "' + tokens.refresh_token + '"');
                 console.log('');
                 console.log('2. Configure your Function App to use refresh token auth');
-                console.log('3. See PERSONAL_ACCOUNTS_SETUP.md for full instructions');
+                console.log('3. See docs/PERSONAL_ACCOUNTS_SETUP.md for full instructions');
                 console.log('='.repeat(80));
 
                 setTimeout(() => {

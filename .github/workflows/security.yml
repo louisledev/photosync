@@ -154,7 +154,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Run Microsoft Security DevOps
-        uses: microsoft/security-devops-action@v1
+        uses: microsoft/security-devops-action@08976cb623803b1b36d7112d4ff9f59eae704de0 # v1.12.0
         id: msdo
         with:
           categories: 'IaC'
@@ -177,7 +177,7 @@ jobs:
           fetch-depth: 0  # Full history for better detection
 
       - name: TruffleHog Secret Scan
-        uses: trufflesecurity/trufflehog@main
+        uses: trufflesecurity/trufflehog@a633174c3b2242aa1b6f8941d2ad6a99e0305964 # main as of 2025-12-22
         with:
           path: ./
           # Only set base/head for pull requests to avoid "same commit" error on push to main

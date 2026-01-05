@@ -6,40 +6,44 @@ PhotoSync uses multiple automated security scanning tools to ensure code quality
 
 ### 🔍 Active Security Measures
 
-#### 1. **CodeQL Analysis** ([codeql.yml](.github/workflows/codeql.yml))
+#### 1. **CodeQL Analysis** (GitHub Advanced Security)
 - **What**: Static code analysis to find security vulnerabilities
 - **Detects**: SQL injection, XSS, command injection, path traversal, etc.
-- **Runs**: Every push, PR, and weekly on Mondays at 6 AM UTC
+- **Runs**: Automatically by GitHub Advanced Security
 - **Results**: Available in the [Security tab](../../security/code-scanning)
+- **Note**: Managed by GitHub, not in workflow files
 
-#### 2. **Dependency Scanning** ([codeql.yml](.github/workflows/codeql.yml))
+#### 2. **Dependency Review** ([security.yml](.github/workflows/security.yml))
+- **What**: Reviews dependencies for vulnerabilities and incompatible licenses
+- **Detects**: Vulnerable or incompatible licenses (GPL, AGPL, LGPL, MPL, etc.)
+- **Runs**: On every pull request (requires base/head comparison)
+- **Action**: PR blocked if moderate+ severity vulnerabilities or copyleft licenses found
+
+#### 3. **NuGet Vulnerability Scan** ([security.yml](.github/workflows/security.yml))
 - **What**: Scans NuGet packages for known vulnerabilities
 - **Detects**: CVEs in dependencies (direct and transitive)
-- **Runs**: Every push and PR
-- **Action**: Build fails if vulnerabilities found
+- **Runs**: Every push, PR, weekly schedule, and manual dispatch
+- **Action**: Build fails if vulnerabilities found, uploads report artifact
 
-#### 3. **Dependency Review** ([codeql.yml](.github/workflows/codeql.yml))
-- **What**: Reviews new dependencies in pull requests
-- **Detects**: Vulnerable or incompatible licenses (GPL-2.0, GPL-3.0)
-- **Runs**: On every pull request
-- **Action**: PR blocked if moderate+ severity vulnerabilities found
+#### 4. **Infrastructure as Code Scanning** ([security.yml](.github/workflows/security.yml))
+- **What**: Microsoft Security DevOps scans Terraform code
+- **Detects**: Security misconfigurations, best practice violations
+- **Runs**: Every push, PR, weekly schedule, and manual dispatch
+- **Tools**: Checkov, Terrascan, Template Analyzer
+- **Results**: Available in the [Security tab](../../security/code-scanning)
 
-#### 4. **Secret Scanning** ([codeql.yml](.github/workflows/codeql.yml))
-- **What**: Uses TruffleHog to detect leaked secrets
-- **Detects**: API keys, passwords, tokens in code
-- **Runs**: Every push and PR
-- **Action**: Build fails if verified secrets found
+#### 5. **Secret Scanning** (GitHub Advanced Security)
+- **What**: Detects leaked secrets in code
+- **Detects**: API keys, passwords, tokens
+- **Runs**: Automatically by GitHub Advanced Security
+- **Action**: Alerts sent to repository maintainers
+- **Note**: Managed by GitHub, not in workflow files
 
-#### 5. **Dependabot** ([dependabot.yml](.github/dependabot.yml))
+#### 6. **Dependabot** ([dependabot.yml](.github/dependabot.yml))
 - **What**: Automated dependency updates
 - **Runs**: Weekly
 - **Action**: Creates PRs for security updates automatically
 - **Scope**: NuGet packages, GitHub Actions, npm packages
-
-#### 6. **Security Best Practices Check** ([security-checklist.yml](.github/workflows/security-checklist.yml))
-- **What**: Validates security configurations
-- **Checks**: Hardcoded secrets, gitignore coverage, permissions
-- **Runs**: Every pull request
 
 ### 🛡️ Azure Security
 
@@ -103,13 +107,15 @@ We will respond within 48 hours and work on a fix.
 
 ## Security Tools in Use
 
-| Tool | Purpose | Documentation |
-|------|---------|--------------|
-| **CodeQL** | Code security analysis | [GitHub CodeQL](https://codeql.github.com/) |
-| **Dependabot** | Automated dependency updates | [Dependabot](https://docs.github.com/en/code-security/dependabot) |
-| **TruffleHog** | Secret detection | [TruffleHog](https://github.com/trufflesecurity/trufflehog) |
-| **Dependency Review** | License and vulnerability check | [GitHub Dependency Review](https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/about-dependency-review) |
-| **Microsoft Defender** | Cloud security posture | [Defender for Cloud](https://azure.microsoft.com/en-us/products/defender-for-cloud/) |
+| Tool | Purpose | Where Configured |
+|------|---------|------------------|
+| **CodeQL** | Code security analysis | GitHub Advanced Security (automatic) |
+| **Dependabot** | Automated dependency updates | [dependabot.yml](.github/dependabot.yml) |
+| **Dependency Review** | License and vulnerability check for PRs | [security.yml](.github/workflows/security.yml) |
+| **NuGet Scanner** | .NET-specific vulnerability detection | [security.yml](.github/workflows/security.yml) |
+| **Microsoft Security DevOps** | IaC scanning (Terraform) | [security.yml](.github/workflows/security.yml) |
+| **Secret Scanning** | Leaked credential detection | GitHub Advanced Security (automatic) |
+| **Microsoft Defender** | Cloud security posture | [Azure Portal](https://azure.microsoft.com/en-us/products/defender-for-cloud/) |
 
 ## Compliance
 
@@ -130,3 +136,4 @@ View security metrics in:
 For security-related questions, see:
 - [GitHub Security Documentation](https://docs.github.com/en/code-security)
 - [Azure Security Best Practices](https://docs.microsoft.com/en-us/azure/security/fundamentals/best-practices-and-patterns)
+- [License Compliance Documentation](license-compliance.md)

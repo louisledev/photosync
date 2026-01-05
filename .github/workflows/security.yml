@@ -19,72 +19,6 @@ env:
   DOTNET_VERSION: '8.0.x'
 
 jobs:
-  codeql-analysis:
-    name: CodeQL Security Analysis
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [ 'csharp' ]
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Check for code changes
-        id: check_changes
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            changed_files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
-            if echo "$changed_files" | grep -qvE '\.(md|gitignore)$|^docs/|^LICENSE'; then
-              echo "should_scan=true" >> $GITHUB_OUTPUT
-            else
-              echo "should_scan=false" >> $GITHUB_OUTPUT
-            fi
-          else
-            echo "should_scan=true" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Skip scan notification
-        if: steps.check_changes.outputs.should_scan == 'false'
-        run: echo "⏭️  Skipping CodeQL scan - only documentation files changed"
-
-      - name: Setup .NET
-        if: steps.check_changes.outputs.should_scan == 'true'
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Initialize CodeQL
-        if: steps.check_changes.outputs.should_scan == 'true'
-        uses: github/codeql-action/init@v4
-        with:
-          languages: ${{ matrix.language }}
-          # Use enhanced security-and-quality query suite
-          queries: security-and-quality
-
-      - name: Restore dependencies
-        if: steps.check_changes.outputs.should_scan == 'true'
-        run: dotnet restore PhotoSync.sln
-
-      - name: Build solution
-        if: steps.check_changes.outputs.should_scan == 'true'
-        run: dotnet build PhotoSync.sln --configuration Release --no-restore
-
-      - name: Perform CodeQL Analysis
-        if: steps.check_changes.outputs.should_scan == 'true'
-        uses: github/codeql-action/analyze@v4
-        with:
-          category: "/language:${{matrix.language}}"
-
   dependency-review:
     name: Dependency & License Review
     runs-on: ubuntu-latest
@@ -165,24 +99,3 @@ jobs:
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: ${{ steps.msdo.outputs.sarifFile }}
-
-  secret-scanning:
-    name: Secret Scanning
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0  # Full history for better detection
-
-      - name: TruffleHog Secret Scan
-        uses: trufflesecurity/trufflehog@a633174c3b2242aa1b6f8941d2ad6a99e0305964 # main as of 2025-12-22
-        with:
-          path: ./
-          # Only set base/head for pull requests to avoid "same commit" error on push to main
-          base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || '' }}
-          head: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || '' }}
-          extra_args: --only-verified

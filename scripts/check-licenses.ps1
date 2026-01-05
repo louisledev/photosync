@@ -40,53 +40,6 @@ $AllowedLicenses = @(
     "BSL-1.0"
 )
 
-function Test-License {
-    param($License)
-
-    foreach ($blocked in $BlockedLicenses) {
-        if ($License -like "*$blocked*") {
-            return "BLOCKED"
-        }
-    }
-
-    foreach ($allowed in $AllowedLicenses) {
-        if ($License -eq $allowed) {
-            return "ALLOWED"
-        }
-    }
-
-    return "UNKNOWN"
-}
-
-function Get-PackageLicense {
-    param($PackageName, $Version)
-
-    try {
-        $nuspecUrl = "https://api.nuget.org/v3-flatcontainer/$($PackageName.ToLower())/$Version/$($PackageName.ToLower()).nuspec"
-        $response = Invoke-WebRequest -Uri $nuspecUrl -UseBasicParsing -TimeoutSec 5
-        [xml]$nuspec = $response.Content
-
-        # Try to get license expression first (SPDX format)
-        $license = $nuspec.package.metadata.license.'#text'
-        if (-not $license) {
-            $license = $nuspec.package.metadata.license.InnerText
-        }
-
-        # Fallback to licenseUrl
-        if (-not $license) {
-            $licenseUrl = $nuspec.package.metadata.licenseUrl
-            if ($licenseUrl -like "*mit*") { return "MIT" }
-            if ($licenseUrl -like "*apache*") { return "Apache-2.0" }
-            if ($licenseUrl -like "*bsd*") { return "BSD" }
-        }
-
-        return $license
-    }
-    catch {
-        return "Unknown"
-    }
-}
-
 # Find all lock files
 $lockFiles = Get-ChildItem -Path . -Recurse -Filter "packages.lock.json" |
     Where-Object { $_.FullName -notlike "*\obj\*" -and $_.FullName -notlike "*\bin\*" }
@@ -96,12 +49,11 @@ if ($lockFiles.Count -eq 0) {
     exit 1
 }
 
-$violations = @()
-$warnings = @()
-$checked = @{}
+# Collect all unique packages to check
+$packagesToCheck = [System.Collections.Generic.HashSet[string]]::new()
 
 foreach ($lockFile in $lockFiles) {
-    Write-Host "Checking $($lockFile.FullName)..." -ForegroundColor Gray
+    Write-Host "Scanning $($lockFile.FullName)..." -ForegroundColor Gray
 
     $lockContent = Get-Content $lockFile.FullName -Raw | ConvertFrom-Json
 
@@ -114,23 +66,95 @@ foreach ($lockFile in $lockFiles) {
             if (-not $packageVersion) { continue }
 
             $key = "$packageName@$packageVersion"
-            if ($checked.ContainsKey($key)) { continue }
-            $checked[$key] = $true
+            $null = $packagesToCheck.Add($key)
+        }
+    }
+}
 
-            Write-Host "  Checking $key..." -ForegroundColor DarkGray
+Write-Host "Checking $($packagesToCheck.Count) unique packages in parallel..." -ForegroundColor Cyan
 
-            $license = Get-PackageLicense -PackageName $packageName -Version $packageVersion
-            $status = Test-License -License $license
+# Check packages in parallel
+$results = $packagesToCheck | ForEach-Object -ThrottleLimit 10 -Parallel {
+    $packageKey = $_
+    $blockedLicenses = $using:BlockedLicenses
+    $allowedLicenses = $using:AllowedLicenses
+    $strictMode = $using:Strict
 
-            switch ($status) {
-                "BLOCKED" {
-                    $violations += "$key : $license (COPYLEFT - BLOCKED)"
-                }
-                "UNKNOWN" {
-                    if ($Strict -or ($license -ne "Unknown" -and $license -notlike "http*")) {
-                        $warnings += "$key : $license (not in allowed list)"
-                    }
-                }
+    # Split package key into name and version
+    $parts = $packageKey -split '@', 2
+    $packageName = $parts[0]
+    $packageVersion = $parts[1]
+
+    try {
+        $nuspecUrl = "https://api.nuget.org/v3-flatcontainer/$($packageName.ToLower())/$packageVersion/$($packageName.ToLower()).nuspec"
+        $response = Invoke-WebRequest -Uri $nuspecUrl -UseBasicParsing -TimeoutSec 5
+        [xml]$nuspec = $response.Content
+
+        # Try to get license expression first (SPDX format)
+        $license = $nuspec.package.metadata.license.'#text'
+        if (-not $license) {
+            $license = $nuspec.package.metadata.license.InnerText
+        }
+
+        # Fallback to licenseUrl
+        if (-not $license) {
+            $licenseUrl = $nuspec.package.metadata.licenseUrl
+            if ($licenseUrl -like "*mit*") { $license = "MIT" }
+            elseif ($licenseUrl -like "*apache*") { $license = "Apache-2.0" }
+            elseif ($licenseUrl -like "*bsd*") { $license = "BSD" }
+        }
+
+        if (-not $license) { $license = "Unknown" }
+    }
+    catch {
+        $license = "Unknown"
+    }
+
+    # Test license
+    $status = "ALLOWED"
+
+    # Check if blocked
+    foreach ($blocked in $blockedLicenses) {
+        if ($license -like "*$blocked*") {
+            $status = "BLOCKED"
+            break
+        }
+    }
+
+    # Check if explicitly allowed
+    if ($status -ne "BLOCKED") {
+        $isAllowed = $false
+        foreach ($allowed in $allowedLicenses) {
+            if ($license -eq $allowed) {
+                $isAllowed = $true
+                break
+            }
+        }
+        if (-not $isAllowed) {
+            $status = "UNKNOWN"
+        }
+    }
+
+    # Return result
+    [PSCustomObject]@{
+        Package = $packageKey
+        License = $license
+        Status = $status
+    }
+}
+
+# Process results
+$violations = @()
+$warnings = @()
+
+foreach ($result in $results) {
+    switch ($result.Status) {
+        "BLOCKED" {
+            $violations += "$($result.Package) : $($result.License) (COPYLEFT - BLOCKED)"
+        }
+        "UNKNOWN" {
+            if ($Strict -or ($result.License -ne "Unknown" -and $result.License -notlike "http*")) {
+                $warnings += "$($result.Package) : $($result.License) (not in allowed list)"
             }
         }
     }

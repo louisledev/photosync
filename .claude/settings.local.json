@@ -23,7 +23,8 @@
       "Bash(/usr/local/share/dotnet/dotnet build:*)",
       "Bash(az monitor app-insights query:*)",
       "Bash(ls:*)",
-      "Bash(/usr/local/share/dotnet/dotnet restore:*)"
+      "Bash(/usr/local/share/dotnet/dotnet restore:*)",
+      "Bash(time pwsh:*)"
     ],
     "deny": [],
     "ask": []

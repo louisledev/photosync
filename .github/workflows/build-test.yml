@@ -74,6 +74,10 @@ jobs:
         if: steps.check_changes.outputs.should_build == 'true'
         run: dotnet list PhotoSync.sln package --vulnerable --include-transitive
 
+      - name: Check package licenses
+        if: steps.check_changes.outputs.should_build == 'true'
+        run: pwsh ./scripts/check-licenses.ps1
+
       - name: Build solution
         if: steps.check_changes.outputs.should_build == 'true'
         run: dotnet build PhotoSync.sln --configuration Release --no-restore

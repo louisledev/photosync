@@ -120,22 +120,21 @@ $AllowedLicenses = @(
 )
 ```
 
+4. Save the updated `check-licenses.ps1` file.
+5. Restore packages to ensure lock files are up to date:
+   ```bash
+   dotnet restore
 ## Adding License Exceptions
 
-If you need to use a package with a copyleft license (after legal review):
+At this time, the `check-licenses.ps1` script does **not** support per‑package exceptions. Any dependency using a blocked (copyleft or weak copyleft) license will continue to cause the script, and therefore CI, to fail.
 
-1. Document the exception and justification
-2. Add the package to an exception list in the script
-3. Update this documentation with the rationale
+If, after legal review, an exception is granted for a specific package:
 
-**Example:**
-```powershell
-# Exceptions (with justification)
-$ExceptionPackages = @{
-    "SomeGPLPackage" = "Approved by legal team - used only for build tooling, not distributed"
-}
-```
+1. Document the exception and justification in your team’s architectural or risk documentation.
+2. Record who approved the exception and under which conditions (for example, "build-time only, not shipped", or "used only in internal tooling").
+3. Regularly review exceptions to confirm they are still needed and that usage has not changed.
 
+Do **not** attempt to configure exceptions inside `check-licenses.ps1` (for example, using an `$ExceptionPackages` variable); such configurations are not currently honored by the script.
 ## Verifying Current Dependencies
 
 To see all dependencies and their licenses:

@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RestoreLockedMode>true</RestoreLockedMode>
     <!-- Suppress warnings common in test code:
          CS8600 = Possible null reference conversion
          CS8602 = Possible dereference of null reference

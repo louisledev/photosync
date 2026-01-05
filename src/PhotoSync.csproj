@@ -18,7 +18,7 @@
     <PackageReference Include="Azure.Identity" Version="1.17.1" />
     <PackageReference Include="Azure.Data.Tables" Version="12.11.0" />
     <PackageReference Include="MetadataExtractor" Version="2.9.0" />
-    <PackageReference Include="Microsoft.Graph" Version="5.98.0" />
+    <PackageReference Include="Microsoft.Graph" Version="5.99.0" />
     <PackageReference Include="Microsoft.Graph.Core" Version="3.2.4" />
   </ItemGroup>
   <ItemGroup>

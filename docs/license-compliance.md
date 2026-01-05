@@ -83,16 +83,6 @@ When updating NuGet packages:
    - Find an alternative package with a permissive license
    - Or get legal approval and update the workflow configuration
 
-## Adding License Exceptions
-
-If, after legal review, an exception is granted for a specific package with a blocked license:
-
-1. Document the exception and justification in your team's architectural or risk documentation
-2. Record who approved the exception and under which conditions (e.g., "build-time only, not shipped")
-3. Remove the specific license from the `deny-licenses` list in [.github/workflows/security.yml](../.github/workflows/security.yml)
-4. Add a comment explaining the exception
-
-**Note:** Be very cautious with exceptions, as copyleft licenses can have significant legal implications.
 
 ## Verifying Current Dependencies
 

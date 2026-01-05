@@ -14,7 +14,7 @@ PhotoSync uses multiple automated security scanning tools to ensure code quality
 - **Note**: Managed by GitHub, not in workflow files
 
 #### 2. **Dependency Review** ([security.yml](.github/workflows/security.yml))
-- **What**: Reviews dependencies and blocks copyleft licenses
+- **What**: Reviews dependencies for vulnerabilities and incompatible licenses
 - **Detects**: Vulnerable or incompatible licenses (GPL, AGPL, LGPL, MPL, etc.)
 - **Runs**: On every pull request (requires base/head comparison)
 - **Action**: PR blocked if moderate+ severity vulnerabilities or copyleft licenses found

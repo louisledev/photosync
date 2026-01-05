@@ -4,6 +4,9 @@ on: pull_request
 jobs:
   auto-merge:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     if: github.actor == 'dependabot[bot]'
     steps:
       - name: Enable auto-merge

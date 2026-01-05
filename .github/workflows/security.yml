@@ -88,6 +88,8 @@ jobs:
   dependency-review:
     name: Dependency & License Review
     runs-on: ubuntu-latest
+    # Only run on pull requests - action requires base/head comparison
+    if: github.event_name == 'pull_request'
     permissions:
       contents: read
       pull-requests: write

@@ -49,7 +49,7 @@ dependency-review:
 - Automatically analyzes dependency changes in the dependency graph
 - Blocks all copyleft licenses listed above
 - Fails on moderate or higher severity vulnerabilities
-- Runs on all workflow triggers (push, PR, schedule, manual)
+- **Runs only on pull requests** (requires base/head branch comparison to detect changes)
 
 ### NuGet Lock Files
 

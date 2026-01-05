@@ -4,19 +4,19 @@ This document describes how the project enforces license compliance to prevent t
 
 ## Overview
 
-The project uses automated license checking to ensure all NuGet dependencies use permissive licenses only. This prevents legal issues related to copyleft licenses (GPL, LGPL, MPL, etc.) that could require releasing your source code.
+The project uses automated license checking via GitHub Actions to ensure all NuGet dependencies use permissive licenses only. This prevents legal issues related to copyleft licenses (GPL, LGPL, MPL, etc.) that could require releasing your source code.
 
 ## Blocked Licenses (Copyleft)
 
 The following licenses are **blocked** and will cause CI builds to fail:
 
 ### Strong Copyleft
-- **GPL-2.0, GPL-3.0** - GNU General Public License (requires derivative works to be GPL)
-- **AGPL-3.0** - Affero GPL (like GPL but also covers network use)
+- **GPL-2.0, GPL-3.0** (and -only variants) - GNU General Public License (requires derivative works to be GPL)
+- **AGPL-3.0** (and -only variant) - Affero GPL (like GPL but also covers network use)
 - **OSL-3.0** - Open Software License
 
 ### Weak Copyleft
-- **LGPL-2.1, LGPL-3.0** - Lesser GPL (requires changes to the library to be released)
+- **LGPL-2.1, LGPL-3.0** (and -only variants) - Lesser GPL (requires changes to the library to be released)
 - **MPL-2.0** - Mozilla Public License (file-level copyleft)
 - **EPL-1.0, EPL-2.0** - Eclipse Public License
 - **CDDL-1.0, CDDL-1.1** - Common Development and Distribution License
@@ -24,26 +24,34 @@ The following licenses are **blocked** and will cause CI builds to fail:
 - **EUPL-1.2** - European Union Public License
 - **CC-BY-SA-4.0** - Creative Commons ShareAlike
 
-## Allowed Licenses (Permissive)
-
-The following licenses are explicitly **allowed**:
-
-- **MIT** - Most common permissive license
-- **Apache-2.0** - Includes patent grant
-- **BSD-2-Clause, BSD-3-Clause** - Berkeley Software Distribution licenses
-- **ISC** - Internet Systems Consortium license (similar to MIT)
-- **0BSD** - Zero-Clause BSD (public domain equivalent)
-- **CC0-1.0** - Creative Commons Public Domain
-- **Unlicense** - Public domain dedication
-- **MS-PL, MS-RL** - Microsoft Public/Reciprocal License
-- **CC-BY-4.0** - Creative Commons Attribution (no ShareAlike)
-- **Python-2.0** - Python Software Foundation License
-- **Zlib** - zlib/libpng License
-- **BSL-1.0** - Boost Software License
-
 ## How It Works
 
-### 1. Lock Files
+### GitHub Actions Dependency Review
+
+The license check is implemented using the [`actions/dependency-review-action`](https://github.com/actions/dependency-review-action) in the Security workflow.
+
+**Workflow file:** [.github/workflows/security.yml](../.github/workflows/security.yml)
+
+```yaml
+dependency-review:
+  name: Dependency & License Review
+  runs-on: ubuntu-latest
+
+  steps:
+    - name: Dependency Review
+      uses: actions/dependency-review-action@v4
+      with:
+        fail-on-severity: moderate
+        deny-licenses: GPL-2.0, GPL-3.0, GPL-2.0-only, GPL-3.0-only, ...
+```
+
+**Features:**
+- Automatically analyzes dependency changes in the dependency graph
+- Blocks all copyleft licenses listed above
+- Fails on moderate or higher severity vulnerabilities
+- Runs on all workflow triggers (push, PR, schedule, manual)
+
+### NuGet Lock Files
 
 The project uses NuGet lock files (`packages.lock.json`) to track exact dependency versions:
 
@@ -54,32 +62,6 @@ The project uses NuGet lock files (`packages.lock.json`) to track exact dependen
 
 - `RestorePackagesWithLockFile`: Generates lock files during restore
 - `RestoreLockedMode`: Enforces lock files and fails if out of sync
-
-### 2. License Check Script
-
-The license check is implemented in PowerShell (cross-platform):
-
-```bash
-pwsh ./scripts/check-licenses.ps1
-```
-
-Features:
-- Reads `packages.lock.json` files
-- Fetches license info from NuGet API in parallel (10 concurrent requests)
-- Blocks copyleft licenses
-- Warns about unknown licenses
-- Fast: checks 137 packages in ~3 seconds
-
-### 3. CI Integration
-
-The license check runs automatically in CI after dependency restore:
-
-```yaml
-- name: Check package licenses
-  run: pwsh ./scripts/check-licenses.ps1
-```
-
-The build will **fail** if any copyleft licenses are detected.
 
 ## Updating Dependencies
 
@@ -95,46 +77,23 @@ When updating NuGet packages:
    dotnet restore --force-evaluate
    ```
 
-3. Run license check locally:
-   ```bash
-   pwsh ./scripts/check-licenses.ps1
-   ```
+3. Create a pull request - the dependency-review action will automatically check licenses
 
 4. If copyleft licenses are detected:
    - Find an alternative package with a permissive license
-   - Or get legal approval and add an exception (see below)
+   - Or get legal approval and update the workflow configuration
 
-## Handling Unknown Licenses
-
-Some packages may show up as warnings with "unknown" licenses. These need manual verification:
-
-1. Check the package's repository or NuGet page
-2. Verify the license is permissive
-3. If acceptable, add to the allowed list in the script:
-
-**In `check-licenses.ps1`:**
-```powershell
-$AllowedLicenses = @(
-    # ... existing licenses ...
-    "NewLicenseName"
-)
-```
-
-4. Save the updated `check-licenses.ps1` file.
-5. Restore packages to ensure lock files are up to date:
-   ```bash
-   dotnet restore
 ## Adding License Exceptions
 
-At this time, the `check-licenses.ps1` script does **not** support per‑package exceptions. Any dependency using a blocked (copyleft or weak copyleft) license will continue to cause the script, and therefore CI, to fail.
+If, after legal review, an exception is granted for a specific package with a blocked license:
 
-If, after legal review, an exception is granted for a specific package:
+1. Document the exception and justification in your team's architectural or risk documentation
+2. Record who approved the exception and under which conditions (e.g., "build-time only, not shipped")
+3. Remove the specific license from the `deny-licenses` list in [.github/workflows/security.yml](../.github/workflows/security.yml)
+4. Add a comment explaining the exception
 
-1. Document the exception and justification in your team’s architectural or risk documentation.
-2. Record who approved the exception and under which conditions (for example, "build-time only, not shipped", or "used only in internal tooling").
-3. Regularly review exceptions to confirm they are still needed and that usage has not changed.
+**Note:** Be very cautious with exceptions, as copyleft licenses can have significant legal implications.
 
-Do **not** attempt to configure exceptions inside `check-licenses.ps1` (for example, using an `$ExceptionPackages` variable); such configurations are not currently honored by the script.
 ## Verifying Current Dependencies
 
 To see all dependencies and their licenses:
@@ -146,14 +105,14 @@ dotnet list package
 # Check for vulnerabilities
 dotnet list package --vulnerable --include-transitive
 
-# Run license check
-pwsh ./scripts/check-licenses.ps1
+# View dependency graph on GitHub
+# Go to Insights -> Dependency graph -> Dependencies
 ```
 
 ## Best Practices
 
 1. **Always check licenses** before adding new dependencies
-2. **Run license check locally** before committing
+2. **Review PRs carefully** - the dependency-review action will flag license issues
 3. **Keep lock files updated** when changing dependencies
 4. **Prefer well-known packages** with clear licensing
 5. **Review transitive dependencies** - your direct dependencies may pull in copyleft packages
@@ -166,18 +125,22 @@ pwsh ./scripts/check-licenses.ps1
 dotnet restore --force-evaluate
 ```
 
-### License check shows many unknowns
+### How to check a specific package's license
 
-Older Microsoft packages may not have proper license metadata. These are generally MIT licensed. You can verify on:
-- https://github.com/dotnet/
-- https://www.nuget.org/packages/[PackageName]
+1. Visit https://www.nuget.org/packages/[PackageName]
+2. Look for the "License" section in the package details
+3. Check the package's GitHub repository
 
-### CI fails but local check passes
+### CI fails on dependency review
 
-Ensure you've committed the updated `packages.lock.json` files.
+The dependency-review action will provide details about which packages have blocked licenses. You'll need to:
+1. Remove the offending package
+2. Find an alternative with a permissive license
+3. Or seek legal approval for an exception
 
 ## Resources
 
+- [GitHub Dependency Review Action](https://github.com/actions/dependency-review-action)
 - [NuGet Package Licenses](https://learn.microsoft.com/en-us/nuget/reference/nuspec#license)
 - [SPDX License List](https://spdx.org/licenses/)
 - [Choose a License](https://choosealicense.com/)
@@ -185,7 +148,7 @@ Ensure you've committed the updated `packages.lock.json` files.
 
 ## Maintenance
 
-Review and update the allowed/blocked license lists periodically as:
+Review and update the blocked license list in the workflow file periodically as:
 - New licenses emerge
 - Legal requirements change
 - Package ecosystems evolve

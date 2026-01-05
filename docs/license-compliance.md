@@ -179,7 +179,7 @@ Ensure you've committed the updated `packages.lock.json` files.
 
 ## Resources
 
-- [NuGet Package Licenses](https://docs.microsoft.com/en-us/nuget/reference/nuspec#license)
+- [NuGet Package Licenses](https://learn.microsoft.com/en-us/nuget/reference/nuspec#license)
 - [SPDX License List](https://spdx.org/licenses/)
 - [Choose a License](https://choosealicense.com/)
 - [Open Source Licenses Comparison](https://opensource.org/licenses)

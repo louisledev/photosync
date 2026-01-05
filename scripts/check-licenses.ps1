@@ -107,6 +107,7 @@ $results = $packagesToCheck | ForEach-Object -ThrottleLimit 10 -Parallel {
         if (-not $license) { $license = "Unknown" }
     }
     catch {
+        Write-Warning ("Failed to retrieve license for package '{0}' version '{1}' from '{2}': {3}" -f $PackageName, $Version, $nuspecUrl, $_)
         $license = "Unknown"
     }
 

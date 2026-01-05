@@ -12,7 +12,16 @@ jobs:
     if: github.actor == 'dependabot[bot]'
     steps:
       - name: Enable auto-merge
+        id: enable-auto-merge
+        continue-on-error: true
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Log auto-merge failure
+        if: steps.enable-auto-merge.outcome == 'failure'
+        run: |
+          echo "Failed to enable auto-merge for PR: $PR_URL"
+          echo "This may be due to missing permissions or auto-merge not being enabled on the repository."
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}

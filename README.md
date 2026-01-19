@@ -314,7 +314,7 @@ After changing, redeploy the code to both Function Apps.
 
 The project includes a GitHub Actions workflow that automatically builds, tests, and deploys your code to Azure when you push to the `main` branch.
 
-> **Note:** This project also includes Azure Pipelines configuration files (`azure-pipelines-ci.yml` and `azure-pipelines-cd.yml`) for **testing purposes only**. These are not currently functional and are used for experimenting with Azure Pipelines. **GitHub Actions remains the primary CI/CD solution for this project.**
+> **Note:** This repository is connected to an Azure DevOps project for experimentation and testing purposes. The Azure Pipelines configuration files (`azure-pipelines-ci.yml` and `azure-pipelines-cd.yml`) are used for testing Azure DevOps integration. **GitHub Actions remains the primary CI/CD solution for this project.**
 
 ### Setup GitHub Actions Deployment
 

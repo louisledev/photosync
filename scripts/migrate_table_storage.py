@@ -9,15 +9,18 @@
 Migrate Azure Table Storage entities between storage accounts.
 
 Usage:
+    # Set environment variables for security
+    export SRC_STORAGE_KEY=<source_key>
+    export DST_STORAGE_KEY=<destination_key>
+    
     uv run scripts/migrate_table_storage.py \
         --src-account <source_account> \
-        --src-key <source_key> \
         --dst-account <destination_account> \
-        --dst-key <destination_key> \
         --table ProcessedPhotos
 """
 
 import argparse
+import os
 from collections import defaultdict
 from collections.abc import Iterator
 from dataclasses import dataclass
@@ -151,13 +154,23 @@ def main() -> None:
         description="Migrate Azure Table Storage between accounts"
     )
     parser.add_argument("--src-account", required=True, help="Source storage account name")
-    parser.add_argument("--src-key", required=True, help="Source storage account key")
     parser.add_argument("--dst-account", required=True, help="Destination storage account name")
-    parser.add_argument("--dst-key", required=True, help="Destination storage account key")
     parser.add_argument("--table", default="ProcessedPhotos", help="Table name to migrate")
     parser.add_argument("--batch-size", type=int, default=100, help="Batch size (max 100)")
 
     args = parser.parse_args()
+
+    # Read storage keys from environment variables for security
+    src_key = os.environ.get("SRC_STORAGE_KEY")
+    dst_key = os.environ.get("DST_STORAGE_KEY")
+
+    if not src_key or not dst_key:
+        missing = []
+        if not src_key:
+            missing.append("SRC_STORAGE_KEY")
+        if not dst_key:
+            missing.append("DST_STORAGE_KEY")
+        parser.error(f"Required environment variable(s) not set: {', '.join(missing)}")
 
     if args.batch_size > 100:
         print("Warning: Azure limits batch size to 100, using 100")
@@ -165,9 +178,9 @@ def main() -> None:
 
     migrate_table(
         src_account=args.src_account,
-        src_key=args.src_key,
+        src_key=src_key,
         dst_account=args.dst_account,
-        dst_key=args.dst_key,
+        dst_key=dst_key,
         table_name=args.table,
         batch_size=args.batch_size,
     )

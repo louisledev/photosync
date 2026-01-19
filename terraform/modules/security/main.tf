@@ -1,8 +1,13 @@
 # Security Module - Configures security monitoring and alerts for PhotoSync
-# Note: Reuses the Log Analytics workspace created by Application Insights
+#
+# NOTE: Most resources are disabled due to permission issues with managed Log Analytics
+# workspaces and multi-resource alert limitations. These can be enabled manually via
+# Azure Portal after deployment if needed.
 
 # Diagnostic settings for Function App 1
+# DISABLED: Requires permissions on managed Log Analytics workspace
 resource "azurerm_monitor_diagnostic_setting" "function_app_source1" {
+  count                      = 0 # Disabled - permission issue with managed workspace
   name                       = "${var.function_app_source1_name}-diagnostics"
   target_resource_id         = var.function_app_source1_id
   log_analytics_workspace_id = var.log_analytics_workspace_id
@@ -17,7 +22,9 @@ resource "azurerm_monitor_diagnostic_setting" "function_app_source1" {
 }
 
 # Diagnostic settings for Function App 2
+# DISABLED: Requires permissions on managed Log Analytics workspace
 resource "azurerm_monitor_diagnostic_setting" "function_app_source2" {
+  count                      = 0 # Disabled - permission issue with managed workspace
   name                       = "${var.function_app_source2_name}-diagnostics"
   target_resource_id         = var.function_app_source2_id
   log_analytics_workspace_id = var.log_analytics_workspace_id
@@ -32,8 +39,9 @@ resource "azurerm_monitor_diagnostic_setting" "function_app_source2" {
 }
 
 # Diagnostic settings for Key Vault (if enabled)
+# DISABLED: Requires permissions on managed Log Analytics workspace
 resource "azurerm_monitor_diagnostic_setting" "keyvault" {
-  count                      = var.key_vault_id != "" ? 1 : 0
+  count                      = 0 # Disabled - permission issue with managed workspace
   name                       = "keyvault-diagnostics"
   target_resource_id         = var.key_vault_id
   log_analytics_workspace_id = var.log_analytics_workspace_id
@@ -48,7 +56,9 @@ resource "azurerm_monitor_diagnostic_setting" "keyvault" {
 }
 
 # Alert for Function App failures
+# DISABLED: Multi-resource alerts not supported for Function Apps
 resource "azurerm_monitor_metric_alert" "function_app_failures" {
+  count               = 0 # Disabled - multi-resource alerts not supported for Function Apps
   name                = "${var.resource_prefix}-function-failures"
   resource_group_name = var.resource_group_name
   scopes              = [var.function_app_source1_id, var.function_app_source2_id]
@@ -74,7 +84,7 @@ resource "azurerm_monitor_metric_alert" "function_app_failures" {
 
 # Alert for Key Vault access failures (if enabled)
 resource "azurerm_monitor_metric_alert" "keyvault_failures" {
-  count               = var.key_vault_id != "" ? 1 : 0
+  count               = var.enable_keyvault ? 1 : 0
   name                = "${var.resource_prefix}-keyvault-failures"
   resource_group_name = var.resource_group_name
   scopes              = [var.key_vault_id]
@@ -105,7 +115,9 @@ resource "azurerm_monitor_metric_alert" "keyvault_failures" {
 }
 
 # Alert for unusual number of processed files (potential security issue)
+# DISABLED: Log Analytics workspace needs data before this can work
 resource "azurerm_monitor_scheduled_query_rules_alert_v2" "unusual_activity" {
+  count                = 0 # Disabled on initial deployment - enable after first run
   name                 = "${var.resource_prefix}-unusual-activity"
   resource_group_name  = var.resource_group_name
   location             = var.location

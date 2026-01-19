@@ -10,8 +10,12 @@ Migrate Azure Table Storage entities between storage accounts.
 
 Usage:
     # Set environment variables for security
-    export SRC_STORAGE_KEY=<source_key>
-    export DST_STORAGE_KEY=<destination_key>
+    echo -n "Source Storage Key: "
+    read -s SRC_STORAGE_KEY
+    export SRC_STORAGE_KEY
+    echo "Destination Storage Key: "
+    read -s DST_STORAGE_KEY
+    export DST_STORAGE_KEY
     
     uv run scripts/migrate_table_storage.py \
         --src-account <source_account> \

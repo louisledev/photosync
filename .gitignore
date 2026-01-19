@@ -49,3 +49,10 @@ terraform/.terraform.lock.hcl
 .vscode/
 .idea/
 old-subscription.tfstate
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python

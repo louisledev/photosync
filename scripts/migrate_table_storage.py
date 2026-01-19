@@ -21,6 +21,7 @@ import argparse
 from collections import defaultdict
 from collections.abc import Iterator
 from dataclasses import dataclass
+from azure.core.exceptions import ResourceExistsError
 from azure.data.tables import TableClient, TableServiceClient, TableTransactionError
 
 
@@ -51,8 +52,11 @@ def ensure_table_exists(account: str, key: str, table_name: str) -> None:
     try:
         service.create_table(table_name)
         print(f"Created table '{table_name}' in destination")
-    except Exception:
+    except ResourceExistsError:
         print(f"Table '{table_name}' already exists in destination")
+    except Exception as e:
+        print(f"Error ensuring table exists: {type(e).__name__}: {e}")
+        raise
 
 
 def group_by_partition(entities: list[dict]) -> dict[str, list[dict]]:

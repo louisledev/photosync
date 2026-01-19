@@ -48,3 +48,4 @@ terraform/.terraform.lock.hcl
 
 .vscode/
 .idea/
+old-subscription.tfstate

@@ -45,3 +45,9 @@ variable "key_vault_id" {
   type        = string
   default     = ""
 }
+
+variable "enable_keyvault" {
+  description = "Whether Key Vault is enabled"
+  type        = bool
+  default     = false
+}

@@ -11,6 +11,7 @@ terraform {
 
 provider "azurerm" {
   features {}
+  subscription_id = var.subscription_id
 }
 
 # Resource Group (shared by both Function Apps)
@@ -151,4 +152,5 @@ module "security" {
   function_app_source2_id     = module.function_app_source2.function_app_id
   function_app_source2_name   = module.function_app_source2.function_app_name
   key_vault_id                = var.enable_keyvault ? module.keyvault[0].key_vault_id : ""
+  enable_keyvault             = var.enable_keyvault
 }

@@ -109,7 +109,7 @@ def migrate_entities(
             result.migrated += batch_result.migrated
             result.errors += batch_result.errors
 
-            if result.migrated % 500 == 0 or result.migrated == total:
+            if result.migrated % 500 == 0 or result.migrated + result.errors == total:
                 print(f"Progress: {result.migrated}/{total} entities migrated")
 
     return result

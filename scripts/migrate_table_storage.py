@@ -160,10 +160,13 @@ def main() -> None:
     src_key = os.environ.get("SRC_STORAGE_KEY")
     dst_key = os.environ.get("DST_STORAGE_KEY")
 
-    if not src_key:
-        parser.error("SRC_STORAGE_KEY environment variable is required")
-    if not dst_key:
-        parser.error("DST_STORAGE_KEY environment variable is required")
+    if not src_key or not dst_key:
+        missing = []
+        if not src_key:
+            missing.append("SRC_STORAGE_KEY")
+        if not dst_key:
+            missing.append("DST_STORAGE_KEY")
+        parser.error(f"Required environment variable(s) not set: {', '.join(missing)}")
 
     if args.batch_size > 100:
         print("Warning: Azure limits batch size to 100, using 100")

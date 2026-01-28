@@ -171,7 +171,7 @@ traces
 
 1. Check your destination OneDrive account (sign in at onedrive.com)
 2. Navigate to the destination folder (e.g., `/Synced Photos`)
-3. Look for photos organized by date: `2025/2025-12/20251225_143022.jpg`
+3. Look for photos organized by date: `YYYY/YYYY-MM/YYYYMMDD_HHMMSS.jpg`
 
 ## Schedule
 

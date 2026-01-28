@@ -135,6 +135,7 @@ To trigger manually: **Actions** → **Deploy to Azure** → **Run workflow**
 
 **For local deployment** (optional):
 ```bash
+# From terraform directory
 SOURCE1=$(terraform output -raw function_app_source1_name)
 SOURCE2=$(terraform output -raw function_app_source2_name)
 cd ../src

@@ -161,7 +161,7 @@ Your PhotoSync is now running with personal Microsoft accounts using secure refr
 ## How It Works
 
 1. **Terraform-Managed App Registration**: The Azure AD app is created automatically with correct permissions
-2. **Auto-Generated Client Secret**: Terraform creates and rotates the client secret
+2. **Auto-Generated Client Secret**: Terraform creates the client secret, but it is not automatically rotated; rotate or replace it manually as needed or when it expires
 3. **Delegated Permissions**: Each user consents individually when running `get-refresh-token.js`
 4. **Refresh Tokens**: Long-lived tokens (~90 days) stored in Key Vault, auto-renewed when used
 5. **Function Apps**: Use managed identities to retrieve tokens from Key Vault

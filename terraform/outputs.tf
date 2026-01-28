@@ -94,6 +94,6 @@ output "onedrive_app_client_secret" {
 }
 
 output "refresh_token_command" {
-  description = "Command to generate refresh tokens for OneDrive accounts"
+  description = "Command to generate refresh tokens for OneDrive accounts; copy and run this in a POSIX-compatible shell (e.g., bash/zsh) that supports $(...) command substitution so the nested 'terraform output' is evaluated"
   value       = "node tools/get-refresh-token.js ${azuread_application.photosync_onedrive.client_id} $(terraform output -raw onedrive_app_client_secret)"
 }

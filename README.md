@@ -2,7 +2,7 @@
 
 [![Build and Test](https://github.com/louisledev/photosync/actions/workflows/build-test.yml/badge.svg)](https://github.com/louisledev/photosync/actions/workflows/build-test.yml)
 [![Deploy to Azure](https://github.com/louisledev/photosync/actions/workflows/deploy.yml/badge.svg)](https://github.com/louisledev/photosync/actions/workflows/deploy.yml)
-[![Security Scanning](https://github.com/louisledev/photosync/actions/workflows/codeql.yml/badge.svg)](https://github.com/louisledev/photosync/actions/workflows/codeql.yml)
+[![Security Scanning](https://github.com/louisledev/photosync/actions/workflows/security.yml/badge.svg)](https://github.com/louisledev/photosync/actions/workflows/security.yml)
 [![Security Best Practices](https://github.com/louisledev/photosync/actions/workflows/security-checklist.yml/badge.svg)](https://github.com/louisledev/photosync/actions/workflows/security-checklist.yml)
 
 Automated solution for syncing family photos from multiple OneDrive accounts into a single consolidated location. This Azure Function runs daily, downloads photos, renames them based on EXIF metadata, and uploads to a destination OneDrive account.

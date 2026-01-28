@@ -26,7 +26,7 @@ jobs:
       - name: Find latest successful build run
         if: github.event_name == 'workflow_dispatch'
         id: find-run
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const runs = await github.rest.actions.listWorkflowRuns({

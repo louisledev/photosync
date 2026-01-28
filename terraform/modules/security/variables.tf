@@ -51,3 +51,19 @@ variable "enable_keyvault" {
   type        = bool
   default     = false
 }
+
+variable "alert_email" {
+  description = "Email address to receive alerts (empty string to disable)"
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.alert_email == "" || (trim(var.alert_email) != "" && can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.alert_email)))
+    error_message = "alert_email must be empty to disable alerts, or a non-whitespace, valid email address."
+  }
+}
+
+variable "application_insights_id" {
+  description = "Resource ID of Application Insights"
+  type        = string
+}

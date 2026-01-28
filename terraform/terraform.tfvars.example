@@ -81,6 +81,14 @@ source2_refresh_token     = ""  # ← Second account token (from step 2)
 destination_refresh_token = ""  # ← Destination account token (from step 2)
 
 # ============================================================================
+# Email Alerts (Optional)
+# ============================================================================
+# Receive email notifications when function errors occur.
+# Leave empty to disable email alerts.
+
+alert_email = ""  # ← Your email address (e.g., "you@example.com")
+
+# ============================================================================
 # What Terraform Creates Automatically
 # ============================================================================
 # - Azure AD App Registration with correct permissions
@@ -89,5 +97,6 @@ destination_refresh_token = ""  # ← Destination account token (from step 2)
 # - Function Apps with managed identities
 # - Key Vault with access policies
 # - Application Insights for monitoring
+# - Azure Monitor alerts (if alert_email is configured)
 #
 # You do NOT need to create these manually!

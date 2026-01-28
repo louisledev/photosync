@@ -4,6 +4,66 @@
 # workspaces and multi-resource alert limitations. These can be enabled manually via
 # Azure Portal after deployment if needed.
 
+# Action Group for email notifications (only created if alert_email is provided)
+resource "azurerm_monitor_action_group" "email_alerts" {
+  count               = var.alert_email != "" ? 1 : 0
+  name                = "${var.resource_prefix}-alerts"
+  resource_group_name = var.resource_group_name
+  short_name          = "PhotoSync"
+
+  email_receiver {
+    name                    = "EmailAlerts"
+    email_address           = var.alert_email
+    use_common_alert_schema = true
+  }
+
+  tags = {
+    Environment = "Production"
+    ManagedBy   = "Terraform"
+    Project     = "PhotoSync"
+  }
+}
+
+# Alert for Application Insights exceptions (function errors)
+resource "azurerm_monitor_scheduled_query_rules_alert_v2" "app_exceptions" {
+  count                = var.alert_email != "" ? 1 : 0
+  name                 = "${var.resource_prefix}-exceptions"
+  resource_group_name  = var.resource_group_name
+  location             = var.location
+  scopes               = [var.application_insights_id]
+  severity             = 2
+  evaluation_frequency = "PT5M"
+  window_duration      = "PT5M"
+  description          = "Alert when PhotoSync functions encounter errors"
+
+  criteria {
+    query                   = <<-QUERY
+      exceptions
+      | where timestamp > ago(5m)
+      | where cloud_RoleName contains "${var.resource_prefix}"
+      | summarize ErrorCount = count() by cloud_RoleName, problemId
+    QUERY
+    time_aggregation_method = "Count"
+    threshold               = 0
+    operator                = "GreaterThan"
+
+    failing_periods {
+      minimum_failing_periods_to_trigger_alert = 1
+      number_of_evaluation_periods             = 1
+    }
+  }
+
+  action {
+    action_groups = [azurerm_monitor_action_group.email_alerts[0].id]
+  }
+
+  tags = {
+    Environment = "Production"
+    ManagedBy   = "Terraform"
+    Project     = "PhotoSync"
+  }
+}
+
 # Diagnostic settings for Function App 1
 # DISABLED: Requires permissions on managed Log Analytics workspace
 resource "azurerm_monitor_diagnostic_setting" "function_app_source1" {
@@ -104,6 +164,13 @@ resource "azurerm_monitor_metric_alert" "keyvault_failures" {
       name     = "StatusCode"
       operator = "Include"
       values   = ["401", "403"]
+    }
+  }
+
+  dynamic "action" {
+    for_each = var.alert_email != "" ? [1] : []
+    content {
+      action_group_id = azurerm_monitor_action_group.email_alerts[0].id
     }
   }
 

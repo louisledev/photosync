@@ -235,10 +235,12 @@ module "security" {
   resource_group_name         = azurerm_resource_group.photosync.name
   location                    = azurerm_resource_group.photosync.location
   log_analytics_workspace_id  = module.application_insights.workspace_id
+  application_insights_id     = module.application_insights.id
   function_app_source1_id     = module.function_app_source1.function_app_id
   function_app_source1_name   = module.function_app_source1.function_app_name
   function_app_source2_id     = module.function_app_source2.function_app_id
   function_app_source2_name   = module.function_app_source2.function_app_name
   key_vault_id                = var.enable_keyvault ? module.keyvault[0].key_vault_id : ""
   enable_keyvault             = var.enable_keyvault
+  alert_email                 = var.alert_email
 }

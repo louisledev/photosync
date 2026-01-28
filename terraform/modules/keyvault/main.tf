@@ -67,10 +67,8 @@ resource "azurerm_key_vault_secret" "destination_refresh_token" {
   depends_on = [azurerm_key_vault_access_policy.terraform_user]
 }
 
-# Store client secrets (if provided, as alternative to refresh tokens)
+# Store client secrets (managed by Terraform via App Registration)
 resource "azurerm_key_vault_secret" "source1_client_secret" {
-  count = var.source1_client_secret != null ? 1 : 0
-
   name         = "source1-client-secret"
   value        = var.source1_client_secret
   key_vault_id = azurerm_key_vault.photosync.id
@@ -79,8 +77,6 @@ resource "azurerm_key_vault_secret" "source1_client_secret" {
 }
 
 resource "azurerm_key_vault_secret" "source2_client_secret" {
-  count = var.source2_client_secret != null ? 1 : 0
-
   name         = "source2-client-secret"
   value        = var.source2_client_secret
   key_vault_id = azurerm_key_vault.photosync.id
@@ -89,8 +85,6 @@ resource "azurerm_key_vault_secret" "source2_client_secret" {
 }
 
 resource "azurerm_key_vault_secret" "destination_client_secret" {
-  count = var.destination_client_secret != null ? 1 : 0
-
   name         = "destination-client-secret"
   value        = var.destination_client_secret
   key_vault_id = azurerm_key_vault.photosync.id

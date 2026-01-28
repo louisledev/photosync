@@ -80,3 +80,20 @@ output "security_alerts_url" {
   description = "URL to view security alerts in Azure Portal"
   value       = module.security.alerts_portal_url
 }
+
+# OneDrive App Registration outputs
+output "onedrive_app_client_id" {
+  description = "Client ID of the OneDrive App Registration (use with get-refresh-token.js)"
+  value       = azuread_application.photosync_onedrive.client_id
+}
+
+output "onedrive_app_client_secret" {
+  description = "Client Secret of the OneDrive App Registration (use with get-refresh-token.js)"
+  value       = azuread_application_password.photosync_onedrive.value
+  sensitive   = true
+}
+
+output "refresh_token_command" {
+  description = "Command to generate refresh tokens for OneDrive accounts"
+  value       = "node tools/get-refresh-token.js ${azuread_application.photosync_onedrive.client_id} $(terraform output -raw onedrive_app_client_secret)"
+}

@@ -14,284 +14,230 @@ Instead of using **application permissions** (client credentials flow), we use *
 
 ```mermaid
 flowchart TD
-  A[Personal Account Owner signs in] --> B[Grants consent]
-  B --> C[Refresh Token stored in Azure Key Vault]
-  C --> D[Function App uses refresh token]
-  D --> E[Accesses OneDrive without user interaction]
+  A[Terraform creates App Registration] --> B[User runs get-refresh-token.js]
+  B --> C[Personal Account Owner signs in & grants consent]
+  C --> D[Refresh Token stored in Azure Key Vault]
+  D --> E[Function App uses refresh token]
+  E --> F[Accesses OneDrive without user interaction]
 ```
 
-## Updated Setup Steps
+## Setup Steps
 
-### Step 1: Register ONE Azure AD Application
+### Step 1: Configure Terraform Variables
 
-You only need **ONE** app registration that all accounts will consent to:
-
-1. Go to [Azure Portal](https://portal.azure.com) → **Azure Entra** → **App registrations**
-2. Click **New registration**
-3. Configure:
-   - **Name**: `PhotoSync-MultiAccount`
-   - **Supported account types**: **Accounts in any organizational directory and personal Microsoft accounts**
-   - **Redirect URI**: Select "Web" and enter `http://localhost:8080/callback`
-   - Click **Register**
-
-4. After registration, note down:
-   - **Application (client) ID**
-   - **Directory (tenant) ID** (use `common` for multi-tenant)
-
-5. Create a **Client Secret**:
-   - Go to **Certificates & secrets**
-   - Click **New client secret**
-   - Description: "PhotoSync Secret"
-   - Expires: 24 months
-   - Copy the **secret value** immediately
-
-6. Configure **API Permissions** (Delegated, NOT Application):
-   - Go to **API permissions**
-   - Click **Add a permission** → **Microsoft Graph**
-   - Select **Delegated permissions**
-   - Add these permissions:
-     - `Files.Read`
-     - `Files.ReadWrite`
-     - `offline_access` (critical - allows refresh tokens)
-   - Click **Add permissions**
-   - **DO NOT** click "Grant admin consent" (each user will consent individually)
-
-### Step 2: Get Consent and Refresh Tokens for Each Account
-
-You need to get a **refresh token** for each OneDrive account (yours, wife's, shared destination).
-
-#### Use the Node.js Helper Script (Recommended)
-
-We've provided a ready-to-use script at [`tools/get-refresh-token.js`](tools/get-refresh-token.js) that handles the entire OAuth flow.
-
-**Prerequisites:**
-- Node.js 18+ (includes built-in `fetch`, no external dependencies needed)
-
-**Usage:**
-
-```bash
-cd tools
-echo "Enter your Client ID: "
-read -s CLIENT_ID
-echo "Enter your Client Secret: "
-read -s CLIENT_SECRET
-node get-refresh-token.js $CLIENT_ID $CLIENT_SECRET
-```
-
-**What it does:**
-1. Opens your browser to Microsoft's login page
-2. You sign in with the Microsoft account you want to authorize
-3. You grant the requested permissions (Files.Read, Files.ReadWrite, offline_access)
-4. The script receives the authorization code and exchanges it for tokens
-5. Displays the refresh token in your terminal
-
-**Run for each account:**
-
-```bash
-# For your account
-node get-refresh-token.js your-client-id your-client-secret
-
-# For wife's account (have her sign in when browser opens)
-node get-refresh-token.js your-client-id your-client-secret
-
-# For shared destination account
-node get-refresh-token.js your-client-id your-client-secret
-```
-
-**Important:** All three accounts use the **same** Client ID and Client Secret (from the single app registration you created in Step 1).
-
-See [`tools/README.md`](tools/README.md) for more details and troubleshooting.
-
-### Step 3: Store Refresh Tokens Securely in Azure Key Vault
-
-**DO NOT** store refresh tokens in configuration files or environment variables directly in production.
-
-1. **Create Azure Key Vault:**
-   ```bash
-   az keyvault create \
-     --name photosync-vault \
-     --resource-group PhotoSyncRG \
-     --location westeurope
-   ```
-
-2. **Store refresh tokens as secrets:**
-   ```bash
-   # Your account
-   az keyvault secret set \
-     --vault-name photosync-vault \
-     --name source1-refresh-token \
-     --value "YOUR_REFRESH_TOKEN_1"
-
-   # Wife's account
-   az keyvault secret set \
-     --vault-name photosync-vault \
-     --name source2-refresh-token \
-     --value "YOUR_REFRESH_TOKEN_2"
-
-   # Destination account
-   az keyvault secret set \
-     --vault-name photosync-vault \
-     --name destination-refresh-token \
-     --value "YOUR_REFRESH_TOKEN_3"
-   ```
-
-3. **Grant Function App access to Key Vault:**
-   ```bash
-   # Enable managed identity for Function App
-   az functionapp identity assign \
-     --name photosync-source1 \
-     --resource-group PhotoSyncRG
-
-   # Get the principal ID
-   PRINCIPAL_ID=$(az functionapp identity show \
-     --name photosync-source1 \
-     --resource-group PhotoSyncRG \
-     --query principalId -o tsv)
-
-   # Grant access to Key Vault
-   az keyvault set-policy \
-     --name photosync-vault \
-     --object-id $PRINCIPAL_ID \
-     --secret-permissions get list
-   ```
-
-### Step 4: Deploy Infrastructure with Terraform
-
-The PhotoSync application is fully configured to support refresh token authentication. You just need to enable Key Vault when deploying:
+Terraform automatically creates the Azure AD App Registration with the correct permissions. You just need to configure the basic settings:
 
 ```bash
 cd terraform
 cp terraform.tfvars.example terraform.tfvars
 ```
 
-Edit `terraform.tfvars` to enable Key Vault:
+Edit `terraform.tfvars`:
 
 ```hcl
-# Enable Key Vault
-enable_keyvault = true
-key_vault_name  = "photosync-kv-UNIQUE"  # Must be globally unique
+subscription_id               = "your-subscription-id"
+resource_group_name           = "photosync-rg"
+function_app_name_prefix      = "photosync"
+storage_account_name_prefix   = "photosync"
+location                      = "westeurope"
+enable_keyvault               = true
+key_vault_name                = "photosync-kv-UNIQUE"  # Must be globally unique
 
-# Store the refresh tokens you obtained in Step 2
-source1_refresh_token      = "0.AXEA..."  # Your refresh token
-source2_refresh_token      = "0.AXEA..."  # Wife's refresh token
-destination_refresh_token  = "0.AXEA..."  # Shared account refresh token
-
-# Store the client secret from Step 1
-source1_client_secret_for_vault      = "your-actual-client-secret"
-source2_client_secret_for_vault      = "your-actual-client-secret"  # Same
-destination_client_secret_for_vault  = "your-actual-client-secret"  # Same
-
-# Configure Function Apps to use refresh tokens
-# Note: Tenant is always "common" for personal accounts (hardcoded in auth provider)
+# OneDrive 1 Configuration (your account)
 onedrive1_config = {
-  "OneDrive1:ClientId"               = "your-client-id"
-  "OneDrive1:RefreshTokenSecretName" = "source1-refresh-token"  # Key Vault secret NAME containing the refresh token
-  "OneDrive1:ClientSecretName"       = "source1-client-secret"  # Key Vault secret NAME containing the OAuth client secret
-  "OneDrive1:SourceFolder"           = "Pictures/CameraRoll"
+  "OneDrive1:SourceFolder"           = "/Pictures/CameraRoll"
+  "OneDrive1:RefreshTokenSecretName" = "source1-refresh-token"
+  "OneDrive1:ClientSecretName"       = "source1-client-secret"
   "OneDrive1:DeleteAfterSync"        = "false"
+  "OneDrive1:MaxFilesPerRun"         = "100"
 }
 
+# OneDrive 2 Configuration (second account)
 onedrive2_config = {
-  "OneDrive2:ClientId"               = "your-client-id"  # Same
-  "OneDrive2:RefreshTokenSecretName" = "source2-refresh-token"  # Key Vault secret NAME containing the refresh token
-  "OneDrive2:ClientSecretName"       = "source2-client-secret"  # Key Vault secret NAME containing the OAuth client secret
-  "OneDrive2:SourceFolder"           = "Pictures/CameraRoll"
+  "OneDrive2:SourceFolder"           = "/Pictures/CameraRoll"
+  "OneDrive2:RefreshTokenSecretName" = "source2-refresh-token"
+  "OneDrive2:ClientSecretName"       = "source2-client-secret"
   "OneDrive2:DeleteAfterSync"        = "false"
+  "OneDrive2:MaxFilesPerRun"         = "100"
 }
 
+# OneDrive Destination Configuration (shared account)
 onedrive_destination_config = {
-  "OneDriveDestination:ClientId"               = "your-client-id"  # Same
-  "OneDriveDestination:RefreshTokenSecretName" = "destination-refresh-token"  # Key Vault secret NAME containing the refresh token
-  "OneDriveDestination:ClientSecretName"       = "destination-client-secret"  # Key Vault secret NAME containing the OAuth client secret
-  "OneDriveDestination:DestinationFolder"      = "Pictures/FamilyPhotos"
+  "OneDriveDestination:RefreshTokenSecretName" = "destination-refresh-token"
+  "OneDriveDestination:ClientSecretName"       = "destination-client-secret"
+  "OneDriveDestination:DestinationFolder"      = "/Pictures/FamilyPhotos"
 }
+
+# Leave these empty for now - we'll fill them in after Step 3
+source1_refresh_token      = ""
+source2_refresh_token      = ""
+destination_refresh_token  = ""
 ```
 
-Deploy:
+### Step 2: Deploy Infrastructure (First Run)
+
+Deploy the infrastructure to create the App Registration:
 
 ```bash
+# Login to Azure with Microsoft Graph permissions (required for App Registration)
+az login --scope https://graph.microsoft.com/.default
+
+# Initialize and apply Terraform
 terraform init
 terraform apply
 ```
 
-### Step 5: Configure Function Apps for Refresh Token Mode
+This creates:
+- Azure AD App Registration with correct permissions (Files.Read, Files.ReadWrite, offline_access)
+- Client secret (automatically generated and stored in Key Vault)
+- Function Apps with managed identities
+- Azure Key Vault
+- Application Insights for monitoring
 
-After Terraform completes, configure both Function Apps to use refresh token authentication:
+### Step 3: Get Refresh Tokens for Each Account
+
+After Terraform completes, get the credentials and run the refresh token script:
 
 ```bash
-# Get outputs from Terraform
-SOURCE1=$(terraform output -raw function_app_source1_name)
-SOURCE2=$(terraform output -raw function_app_source2_name)
-VAULT_URI=$(terraform output -raw key_vault_uri)
+# View the command to generate refresh tokens
+terraform output refresh_token_command
 
-# Configure Function App 1
-az functionapp config appsettings set \
-  --name $SOURCE1 \
-  --resource-group photosync-rg \
-  --settings \
-    "UseRefreshTokenAuth=true" \
-    "KeyVault:VaultUrl=$VAULT_URI"
-
-# Configure Function App 2
-az functionapp config appsettings set \
-  --name $SOURCE2 \
-  --resource-group photosync-rg \
-  --settings \
-    "UseRefreshTokenAuth=true" \
-    "KeyVault:VaultUrl=$VAULT_URI"
+# Or run it directly (from the terraform directory)
+cd ..
+node tools/get-refresh-token.js \
+  $(terraform -chdir=terraform output -raw onedrive_app_client_id) \
+  $(terraform -chdir=terraform output -raw onedrive_app_client_secret)
 ```
 
-### Step 6: Deploy Function Code
+**What happens:**
+1. Browser opens to Microsoft's login page
+2. Sign in with the Microsoft account you want to authorize
+3. Grant the requested permissions (Files.Read, Files.ReadWrite, offline_access)
+4. The script displays the refresh token
+
+**Run for each account** (repeat the command above):
+- Your personal account -> save as `source1_refresh_token`
+- Second account (e.g., spouse) -> save as `source2_refresh_token`
+- Shared destination account -> save as `destination_refresh_token`
+
+### Step 4: Update Terraform with Refresh Tokens
+
+Edit `terraform.tfvars` and add the refresh tokens you obtained:
+
+```hcl
+source1_refresh_token      = "M.C553_BAY..."  # Your refresh token
+source2_refresh_token      = "M.C558_BAY..."  # Second account refresh token
+destination_refresh_token  = "M.C505_BAY..."  # Destination account refresh token
+```
+
+Then apply again to store the tokens in Key Vault:
 
 ```bash
+cd terraform
+terraform apply
+```
+
+### Step 5: Deploy Function Code
+
+Deployment happens automatically via GitHub Actions when you push to `main`. The workflow:
+1. Builds and tests the code
+2. Deploys to both Function Apps
+
+To trigger manually, go to **Actions** → **Deploy to Azure** → **Run workflow**.
+
+**For local/manual deployment** (optional):
+```bash
+SOURCE1=$(terraform output -raw function_app_source1_name)
+SOURCE2=$(terraform output -raw function_app_source2_name)
 cd ../src
 func azure functionapp publish $SOURCE1
 func azure functionapp publish $SOURCE2
 ```
 
-## Done! 🎉
+## Done!
 
 Your PhotoSync is now running with personal Microsoft accounts using secure refresh token authentication.
 
 ## How It Works
 
-1. **One App Registration**: All accounts use the same Azure AD app
-2. **Delegated Permissions**: Each user consents individually
-3. **Refresh Tokens**: Long-lived tokens (90 days) stored in Key Vault, auto-renewed when used
-4. **Function Apps**: Use managed identities to retrieve tokens from Key Vault
-5. **Token Exchange**: Refresh tokens are exchanged for short-lived access tokens on demand
+1. **Terraform-Managed App Registration**: The Azure AD app is created automatically with correct permissions
+2. **Auto-Generated Client Secret**: Terraform creates and rotates the client secret
+3. **Delegated Permissions**: Each user consents individually when running `get-refresh-token.js`
+4. **Refresh Tokens**: Long-lived tokens (~90 days) stored in Key Vault, auto-renewed when used
+5. **Function Apps**: Use managed identities to retrieve tokens from Key Vault
+6. **Token Exchange**: Refresh tokens are exchanged for short-lived access tokens on demand
 
-## Configuration Options
+## Terraform Outputs
 
-### Client Secret Name (Optional)
+After deployment, useful outputs are available:
 
-By default, all sources share the same OAuth client secret stored under the name `source1-client-secret` in Key Vault. This works fine when all accounts use the same Azure AD app registration (which is typical for personal accounts).
+```bash
+# Get the OneDrive app client ID
+terraform output onedrive_app_client_id
 
-However, if you need different client secrets for different sources (e.g., using multiple app registrations), you can configure the client secret name per source:
+# Get the client secret (sensitive)
+terraform output -raw onedrive_app_client_secret
 
+# Get the command to generate refresh tokens
+terraform output refresh_token_command
+
+# Get Function App names for deployment
+terraform output function_app_source1_name
+terraform output function_app_source2_name
 ```
-OneDriveSource:ClientSecretName = "source1-client-secret"
-OneDriveDestination:ClientSecretName = "destination-client-secret"
+
+## Refreshing Expired Tokens
+
+If refresh tokens expire (after ~90 days of non-use), regenerate them:
+
+```bash
+cd /path/to/photosync
+
+# Run the refresh token script
+node tools/get-refresh-token.js \
+  $(terraform -chdir=terraform output -raw onedrive_app_client_id) \
+  $(terraform -chdir=terraform output -raw onedrive_app_client_secret)
+
+# Update terraform.tfvars with the new token
+# Then apply to update Key Vault
+cd terraform
+terraform apply
 ```
 
-If not specified, the system falls back to:
-1. The value from `KeyVault:ClientSecretName` configuration (if set)
-2. The default `source1-client-secret` (for backward compatibility)
+## Azure Login Requirements
 
-This configuration is stored in Key Vault secrets following the naming pattern used by Terraform:
-- `source1-client-secret`
-- `source2-client-secret`
-- `destination-client-secret`
+- **Normal operations**: `az login` is sufficient
+- **Creating/modifying App Registration**: Use `az login --scope https://graph.microsoft.com/.default`
+
+The Graph scope is only needed when Terraform creates or modifies the Azure AD App Registration (first deployment, or after `terraform destroy`).
 
 ## Benefits
 
-✅ **One-time setup** per account
-✅ **No admin consent** required
-✅ **Automatic renewal** - refresh tokens auto-renew when used
-✅ **Secure storage** - tokens in Azure Key Vault, not in configuration
-✅ **User control** - users can revoke access anytime via their Microsoft account settings
-✅ **Low cost** - only adds ~$0.10/month for Key Vault
+- **Fully automated**: App Registration created by Terraform
+- **One-time setup** per account (just run the refresh token script)
+- **No admin consent** required
+- **Automatic renewal** - refresh tokens auto-renew when used
+- **Secure storage** - all secrets in Azure Key Vault
+- **User control** - users can revoke access anytime via their Microsoft account settings
+- **Low cost** - only adds ~$0.10/month for Key Vault
 
-## Alternative: Azure AD B2C
+## Troubleshooting
 
-Another approach is **Azure AD B2C** (Business to Consumer) designed for external user accounts, but this adds significant complexity and isn't recommended for this use case.
+### "Insufficient privileges" when running Terraform
+
+Run: `az login --scope https://graph.microsoft.com/.default`
+
+### "Refresh token is invalid or expired"
+
+Regenerate the refresh token using `get-refresh-token.js` and update `terraform.tfvars`.
+
+### "Failed to retrieve refresh token from Key Vault"
+
+- Ensure Function App managed identity has Key Vault access (Terraform handles this automatically)
+- Check that refresh tokens are set in `terraform.tfvars` and `terraform apply` was run
+
+### No photos syncing
+
+- Check Function App logs in Application Insights
+- Verify source folders contain photos
+- Ensure folder paths are correct (relative to OneDrive root)

@@ -69,22 +69,21 @@ The script will display:
 
 ### Workflow
 
+All commands should be run from the project root directory.
+
 1. **First time setup:**
    ```bash
    # Deploy infrastructure (creates App Registration)
-   cd terraform
    az login --scope https://graph.microsoft.com/.default
-   terraform apply
+   terraform -chdir=terraform apply
 
    # Get refresh tokens for each account
-   cd ..
    node tools/get-refresh-token.js \
      $(terraform -chdir=terraform output -raw onedrive_app_client_id) \
      $(terraform -chdir=terraform output -raw onedrive_app_client_secret)
 
    # Update terraform.tfvars with the tokens, then apply again
-   cd terraform
-   terraform apply
+   terraform -chdir=terraform apply
    ```
 
 2. **Refreshing expired tokens:**
@@ -95,8 +94,7 @@ The script will display:
      $(terraform -chdir=terraform output -raw onedrive_app_client_secret)
 
    # Update terraform.tfvars and apply
-   cd terraform
-   terraform apply
+   terraform -chdir=terraform apply
    ```
 
 See [PERSONAL_ACCOUNTS_SETUP.md](../docs/PERSONAL_ACCOUNTS_SETUP.md) for complete documentation.

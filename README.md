@@ -207,6 +207,9 @@ onedrive_destination_config = {
 source1_refresh_token      = ""
 source2_refresh_token      = ""
 destination_refresh_token  = ""
+
+# Email alerts (optional) - receive notifications when errors occur
+alert_email = "you@example.com"  # Leave empty to disable
 ```
 
 ### Step 2: Deploy Infrastructure (First Run)
@@ -232,6 +235,7 @@ This creates:
 - **Azure Key Vault** - Secure storage for refresh tokens and client secrets
 - **Application Insights** - Centralized logging and monitoring
 - **Log Analytics Workspace** - For security monitoring and alerts
+- **Azure Monitor Alerts** - Email notifications when errors occur (if `alert_email` is configured)
 
 ### Step 3: Get Refresh Tokens
 

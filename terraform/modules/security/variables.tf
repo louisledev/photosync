@@ -51,3 +51,14 @@ variable "enable_keyvault" {
   type        = bool
   default     = false
 }
+
+variable "alert_email" {
+  description = "Email address to receive alerts (empty string to disable)"
+  type        = string
+  default     = ""
+}
+
+variable "application_insights_id" {
+  description = "Resource ID of Application Insights"
+  type        = string
+}

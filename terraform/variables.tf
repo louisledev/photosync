@@ -104,4 +104,9 @@ variable "alert_email" {
   description = "Email address to receive alerts when errors occur (leave empty to disable email alerts)"
   type        = string
   default     = ""
+
+  validation {
+    condition     = trimspace(var.alert_email) == "" || can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", trimspace(var.alert_email)))
+    error_message = "alert_email must be empty to disable alerts or a valid email address (e.g. user@example.com)."
+  }
 }

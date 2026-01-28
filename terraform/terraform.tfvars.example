@@ -64,8 +64,8 @@ onedrive_destination_config = {
 #
 # STEP 2: Get refresh tokens using the generated credentials:
 #   node tools/get-refresh-token.js \
-#     $(terraform output -raw onedrive_app_client_id) \
-#     $(terraform output -raw onedrive_app_client_secret)
+#     $(terraform -chdir=terraform output -raw onedrive_app_client_id) \
+#     $(terraform -chdir=terraform output -raw onedrive_app_client_secret)
 #
 # STEP 3: Run the command 3 times (once per account):
 #   - Sign in with each Microsoft account when browser opens

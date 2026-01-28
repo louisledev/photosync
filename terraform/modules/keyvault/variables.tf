@@ -41,24 +41,21 @@ variable "destination_refresh_token" {
   default     = null
 }
 
-# Client secrets (for organizational accounts or as fallback)
+# Client secrets (managed by Terraform via App Registration)
 variable "source1_client_secret" {
   description = "Azure AD app client secret for source 1"
   type        = string
   sensitive   = true
-  default     = null
 }
 
 variable "source2_client_secret" {
   description = "Azure AD app client secret for source 2"
   type        = string
   sensitive   = true
-  default     = null
 }
 
 variable "destination_client_secret" {
   description = "Azure AD app client secret for destination"
   type        = string
   sensitive   = true
-  default     = null
 }

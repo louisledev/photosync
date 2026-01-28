@@ -6,12 +6,78 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 4.55"
     }
+    azuread = {
+      source  = "hashicorp/azuread"
+      version = "~> 3.0"
+    }
   }
 }
 
 provider "azurerm" {
   features {}
   subscription_id = var.subscription_id
+}
+
+provider "azuread" {
+  # Uses the same authentication as azurerm
+}
+
+# Data source to get current Azure AD tenant
+data "azuread_client_config" "current" {}
+
+# Azure AD Application Registration for OneDrive access
+resource "azuread_application" "photosync_onedrive" {
+  display_name     = "${var.function_app_name_prefix}-onedrive"
+  sign_in_audience = "AzureADandPersonalMicrosoftAccount"
+  owners           = [data.azuread_client_config.current.object_id]
+
+  api {
+    requested_access_token_version = 2
+  }
+
+  web {
+    redirect_uris = ["http://localhost:8080/callback"]
+  }
+
+  required_resource_access {
+    resource_app_id = "00000003-0000-0000-c000-000000000000" # Microsoft Graph
+
+    # Files.Read - Delegated
+    resource_access {
+      id   = "10465720-29dd-4523-a11a-6a75c743c9d9"
+      type = "Scope"
+    }
+
+    # Files.ReadWrite - Delegated
+    resource_access {
+      id   = "5c28f0bf-8a70-41f1-8ab2-9032436ddb65"
+      type = "Scope"
+    }
+
+    # offline_access - Delegated
+    resource_access {
+      id   = "7427e0e9-2fba-42fe-b0c0-848c9e6a8182"
+      type = "Scope"
+    }
+  }
+}
+
+# Client secret for the OneDrive application
+resource "azuread_application_password" "photosync_onedrive" {
+  application_id = azuread_application.photosync_onedrive.id
+  display_name   = "Terraform managed secret"
+
+  depends_on = [azuread_application.photosync_onedrive]
+
+  lifecycle {
+    ignore_changes = [end_date]
+  }
+}
+
+# Local values for the generated credentials
+locals {
+  onedrive_client_id     = azuread_application.photosync_onedrive.client_id
+  onedrive_client_secret = azuread_application_password.photosync_onedrive.value
 }
 
 # Resource Group (shared by both Function Apps)
@@ -46,15 +112,26 @@ module "function_app_source1" {
 
   # Rename OneDrive1 config to OneDriveSource for this Function App
   # Replace colons with double underscores for Azure App Settings
-  source_config = {
-    for key, value in var.onedrive1_config :
-    replace(replace(key, "OneDrive1:", "OneDriveSource__"), ":", "__") => value
-  }
+  # Override ClientId with the Terraform-managed App Registration
+  source_config = merge(
+    {
+      for key, value in var.onedrive1_config :
+      replace(replace(key, "OneDrive1:", "OneDriveSource__"), ":", "__") => value
+    },
+    {
+      "OneDriveSource__ClientId" = local.onedrive_client_id
+    }
+  )
 
-  destination_config = {
-    for key, value in var.onedrive_destination_config :
-    replace(key, ":", "__") => value
-  }
+  destination_config = merge(
+    {
+      for key, value in var.onedrive_destination_config :
+      replace(key, ":", "__") => value
+    },
+    {
+      "OneDriveDestination__ClientId" = local.onedrive_client_id
+    }
+  )
 }
 
 # Function App for OneDrive Source 2
@@ -74,15 +151,26 @@ module "function_app_source2" {
 
   # Rename OneDrive2 config to OneDriveSource for this Function App
   # Replace colons with double underscores for Azure App Settings
-  source_config = {
-    for key, value in var.onedrive2_config :
-    replace(replace(key, "OneDrive2:", "OneDriveSource__"), ":", "__") => value
-  }
+  # Override ClientId with the Terraform-managed App Registration
+  source_config = merge(
+    {
+      for key, value in var.onedrive2_config :
+      replace(replace(key, "OneDrive2:", "OneDriveSource__"), ":", "__") => value
+    },
+    {
+      "OneDriveSource__ClientId" = local.onedrive_client_id
+    }
+  )
 
-  destination_config = {
-    for key, value in var.onedrive_destination_config :
-    replace(key, ":", "__") => value
-  }
+  destination_config = merge(
+    {
+      for key, value in var.onedrive_destination_config :
+      replace(key, ":", "__") => value
+    },
+    {
+      "OneDriveDestination__ClientId" = local.onedrive_client_id
+    }
+  )
 }
 
 # Azure Key Vault for storing refresh tokens and secrets
@@ -99,10 +187,10 @@ module "keyvault" {
   source2_refresh_token      = var.source2_refresh_token
   destination_refresh_token  = var.destination_refresh_token
 
-  # Client secrets (optional, for fallback)
-  source1_client_secret      = var.source1_client_secret_for_vault
-  source2_client_secret      = var.source2_client_secret_for_vault
-  destination_client_secret  = var.destination_client_secret_for_vault
+  # Client secret from the Terraform-managed App Registration (same for all sources)
+  source1_client_secret      = local.onedrive_client_secret
+  source2_client_secret      = local.onedrive_client_secret
+  destination_client_secret  = local.onedrive_client_secret
 
   tags = {
     Environment = "Production"

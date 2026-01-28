@@ -9,19 +9,23 @@ Obtains OAuth refresh tokens for personal Microsoft accounts.
 ### Prerequisites
 
 - Node.js 18+ (includes built-in `fetch`)
-- Azure AD app registration with redirect URI: `http://localhost:8080/callback`
-- Client ID and Client Secret from your app registration
+- Terraform deployment completed (creates the App Registration automatically)
 
 ### Usage
 
+After running `terraform apply`, get the credentials from Terraform outputs:
+
 ```bash
-node get-refresh-token.js <CLIENT_ID> <CLIENT_SECRET>
+# From the project root directory
+node tools/get-refresh-token.js \
+  $(terraform -chdir=terraform output -raw onedrive_app_client_id) \
+  $(terraform -chdir=terraform output -raw onedrive_app_client_secret)
 ```
 
-### Example
+Or view the full command:
 
 ```bash
-node get-refresh-token.js abc123-456-789 MySecret123
+terraform -chdir=terraform output refresh_token_command
 ```
 
 ### What it does
@@ -31,14 +35,14 @@ node get-refresh-token.js abc123-456-789 MySecret123
 3. You grant the requested permissions (Files.Read, Files.ReadWrite)
 4. The script receives the authorization code via a local callback server
 5. Exchanges the code for an access token and refresh token
-6. Displays the refresh token (store this in Azure Key Vault)
+6. Displays the refresh token (store this in `terraform.tfvars`)
 
 ### Output
 
 The script will display:
-- ✅ The refresh token (store in Azure Key Vault)
-- ℹ️  The access token (valid for ~1 hour, for testing only)
-- 📋 Example command to store the token in Key Vault
+- The refresh token (add to `terraform.tfvars`)
+- The access token (valid for ~1 hour, for testing only)
+- Example command to store the token via Terraform
 
 ### Troubleshooting
 
@@ -51,63 +55,46 @@ The script will display:
 - Copy and paste it into your browser
 
 **Authentication fails:**
-- Verify your Client ID and Client Secret are correct
-- Ensure the redirect URI is configured in your app registration: `http://localhost:8080/callback`
-- Check that your app has delegated permissions (not application permissions):
-  - Files.Read
-  - Files.ReadWrite
-  - offline_access
+- Verify Terraform has been applied successfully
+- Check that the App Registration exists in Azure Portal
+- Ensure the redirect URI is configured: `http://localhost:8080/callback`
 
 ### Security Notes
 
 - Refresh tokens are sensitive credentials - treat them like passwords
-- Store them in Azure Key Vault, not in configuration files
+- Store them in `terraform.tfvars` (which should be in `.gitignore`)
+- Terraform stores them securely in Azure Key Vault
 - Refresh tokens can last up to 90 days and are automatically renewed when used
 - Users can revoke access at any time via their Microsoft account settings
 
-### Next Steps
+### Workflow
 
-After obtaining the refresh token:
+All commands should be run from the project root directory.
 
-1. **Store in Azure Key Vault:**
+1. **First time setup:**
    ```bash
-   az keyvault secret set \
-     --vault-name your-vault-name \
-     --name source1-refresh-token \
-     --value "YOUR_REFRESH_TOKEN_HERE"
+   # Deploy infrastructure (creates App Registration)
+   az login --scope https://graph.microsoft.com/.default
+   terraform -chdir=terraform apply
+
+   # Get refresh tokens for each account
+   node tools/get-refresh-token.js \
+     $(terraform -chdir=terraform output -raw onedrive_app_client_id) \
+     $(terraform -chdir=terraform output -raw onedrive_app_client_secret)
+
+   # Update terraform.tfvars with the tokens, then apply again
+   terraform -chdir=terraform apply
    ```
 
-2. **Configure Function App:**
-   Add these settings to your Function App:
+2. **Refreshing expired tokens:**
    ```bash
-   az functionapp config appsettings set \
-     --name your-function-app \
-     --resource-group PhotoSyncRG \
-     --settings \
-       "UseRefreshTokenAuth=true" \
-       "KeyVault:VaultUrl=https://your-vault-name.vault.azure.net/" \
-       "OneDriveSource:ClientId=your-client-id" \
-       "OneDriveSource:RefreshTokenSecretName=source1-refresh-token" \
-       "OneDriveSource:ClientSecretName=source1-client-secret"
-   ```
+   # Run the script again
+   node tools/get-refresh-token.js \
+     $(terraform -chdir=terraform output -raw onedrive_app_client_id) \
+     $(terraform -chdir=terraform output -raw onedrive_app_client_secret)
 
-3. **Enable Managed Identity:**
-   ```bash
-   # Enable system-assigned managed identity
-   az functionapp identity assign \
-     --name your-function-app \
-     --resource-group PhotoSyncRG
-
-   # Grant Key Vault access
-   PRINCIPAL_ID=$(az functionapp identity show \
-     --name your-function-app \
-     --resource-group PhotoSyncRG \
-     --query principalId -o tsv)
-
-   az keyvault set-policy \
-     --name your-vault-name \
-     --object-id $PRINCIPAL_ID \
-     --secret-permissions get list
+   # Update terraform.tfvars and apply
+   terraform -chdir=terraform apply
    ```
 
 See [PERSONAL_ACCOUNTS_SETUP.md](../docs/PERSONAL_ACCOUNTS_SETUP.md) for complete documentation.

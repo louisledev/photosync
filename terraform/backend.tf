@@ -13,7 +13,7 @@
 terraform {
   backend "azurerm" {
     resource_group_name  = "terraform-state-rg"
-    storage_account_name = "photosynctfstate"  # Must be globally unique
+    storage_account_name = "photosyncterraform"  # Must be globally unique
     container_name       = "tfstate"
     key                  = "photosync.terraform.tfstate"
   }

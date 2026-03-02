@@ -46,7 +46,7 @@ jobs:
             console.log(`Found latest successful build run: ${runId}`);
 
       - name: Download artifact from build job
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: function-app
           path: ${{ env.OUTPUT_PATH }}

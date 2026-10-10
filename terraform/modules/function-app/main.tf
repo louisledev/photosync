@@ -27,6 +27,8 @@ resource "azurerm_linux_function_app" "function" {
   storage_account_access_key = azurerm_storage_account.function.primary_access_key
 
   site_config {
+    application_insights_connection_string = var.application_insights_connection_string != "" ? var.application_insights_connection_string : null
+
     application_stack {
       dotnet_version              = "8.0"
       use_dotnet_isolated_runtime = true
@@ -47,9 +49,6 @@ resource "azurerm_linux_function_app" "function" {
       # Double underscores are used here to represent colons in .NET configuration keys.
       # This follows .NET conventions, as Terraform does not support colons in keys.
       "KeyVault__VaultUrl" = var.key_vault_url
-    } : {},
-    var.application_insights_connection_string != "" ? {
-      "APPLICATIONINSIGHTS_CONNECTION_STRING" = var.application_insights_connection_string
     } : {},
     var.source_config,
     var.destination_config

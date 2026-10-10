@@ -58,7 +58,7 @@ variable "alert_email" {
   default     = ""
 
   validation {
-    condition     = var.alert_email == "" || (trim(var.alert_email) != "" && can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.alert_email)))
+    condition     = var.alert_email == "" || (trimspace(var.alert_email) != "" && can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.alert_email)))
     error_message = "alert_email must be empty to disable alerts, or a non-whitespace, valid email address."
   }
 }

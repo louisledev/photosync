@@ -50,5 +50,5 @@ terraform init -migrate-state
 
 ## Cost
 
-Estimated monthly cost: ~$2.50-3.00 (with Consumption plan)
+Flex Consumption costs depend on execution duration and memory. See the [deployment migration guide](../.github/DEPLOYMENT.md#net-10-and-flex-consumption-migration) before updating existing Consumption apps.
 - Remote state storage: +$0.10/month (if enabled)

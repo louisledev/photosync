@@ -4,7 +4,7 @@ Use this checklist to track your setup progress.
 
 ## Phase 1: Prerequisites ✓
 - [ ] Azure subscription created/available
-- [ ] .NET 8.0 SDK installed
+- [ ] .NET 10 SDK installed
 - [ ] Azure Functions Core Tools installed (`npm install -g azure-functions-core-tools@4`)
 - [ ] Visual Studio or VS Code with Azure Functions extension (optional but recommended)
 

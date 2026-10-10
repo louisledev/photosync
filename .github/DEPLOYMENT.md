@@ -36,6 +36,34 @@ Before enabling the workflow, you need:
 2. **Azure Service Principal** - For GitHub Actions to authenticate with Azure
 3. **GitHub Repository Secrets** - To store credentials securely
 
+## .NET 10 and Flex Consumption migration
+
+The application and both test projects target .NET 10. Build and security workflows install the .NET 10 SDK. Terraform now provisions Linux Flex Consumption (`FC1`) apps with the `dotnet-isolated` runtime version `10.0`, a private deployment blob container, and no always-ready instances. GitHub Actions deploys the prebuilt package using OneDeploy through `Azure/functions-action`.
+
+**Migrate existing apps before enabling deployment of the .NET 10 artifact.** Linux Consumption (`Y1`) does not support .NET 10. See Microsoft's [supported versions](https://learn.microsoft.com/en-us/azure/azure-functions/dotnet-isolated-process-guide#supported-versions) and [Consumption to Flex migration guide](https://learn.microsoft.com/en-us/azure/azure-functions/migration/migrate-plan-consumption-to-flex).
+
+1. Pause automatic production deployments during migration. Confirm Flex Consumption and .NET 10 availability in your region with `az functionapp list-flexconsumption-locations` and `az functionapp list-flexconsumption-runtimes --location <region> --runtime dotnet-isolated`.
+2. Back up Terraform state and retain both storage accounts, including their `ProcessedPhotos` tables. These tables prevent already synced photos from being processed again.
+3. For existing apps, follow Microsoft's migration guide for each app. This configuration changes from `azurerm_linux_function_app` to `azurerm_function_app_flex_consumption`; a normal apply against the old state can delete and recreate apps. Do not treat this as a routine runtime update or use a cross-type `terraform state mv`.
+4. After migrating, reconcile Terraform state: remove each old Linux Function App address from state only after the actual migration succeeds, then import the migrated Azure app ID at `module.function_app_source1.azurerm_function_app_flex_consumption.function` and `module.function_app_source2.azurerm_function_app_flex_consumption.function`. Reconcile the service plan and deployment container with the actual migrated resources as well. Alternatively, use a planned replacement with downtime; retain storage and expect new managed identities.
+5. Review `terraform plan` before applying. Verify it preserves storage, uses the correct deployment containers and plans, and grants the resulting managed identities access to Key Vault. Terraform apply is a separate infrastructure step; the GitHub workflow deploys code only.
+6. Update the two Function App name secrets if names changed. Deploy a successful **.NET 10** build, verify both sync functions and Application Insights, then resume automatic deployment. Manual deployment selects the latest successful main build, so ensure that build contains the upgrade.
+
+### Recovering from a failed Consumption plan SKU update
+
+Azure cannot update a Consumption (`Y1`/`Dynamic`) hosting plan to Flex Consumption (`FC1`). Terraform uses distinct names ending in `-flex-plan` and creates the replacement plan before deleting the old one. No manual plan creation is needed.
+
+If an apply failed with `Cannot update ServerFarm SKU from 'Dynamic' to 'FlexConsumption'`, some other changes may already have succeeded, including deletion of the old Function Apps. Check both apps in Azure and generate a new plan from the current state; do not reuse the earlier saved plan or restore the old state backup over the partially applied state.
+
+```bash
+terraform -chdir=terraform plan -out=tfplan
+terraform -chdir=terraform show -no-color tfplan
+```
+
+Review that the new plans use `-flex-plan` names and `FC1`, that both storage accounts remain intact, and that Function App deletion/creation matches your chosen replacement with downtime. If you used Microsoft's migration tooling instead, reconcile/import the resources it created before applying. Once reviewed, run `terraform -chdir=terraform apply tfplan`, then deploy application code to the new apps and verify syncing before resuming automatic deployments.
+
+The existing 10-minute `functionTimeout` remains an application execution budget; it is not a Flex Consumption platform maximum. Flex pricing differs from legacy Consumption, so revisit cost estimates using the [Azure Functions pricing page](https://azure.microsoft.com/pricing/details/functions/).
+
 ## Setup Instructions
 
 ### Step 1: Create Azure Service Principal
@@ -189,7 +217,7 @@ This adds a manual gate before deploying to Azure.
 
 - GitHub Actions provides **2,000 free minutes/month** for private repositories
 - This workflow typically uses **5-8 minutes** per run
-- Azure Functions Consumption Plan charges per execution (already configured)
+- Azure Functions Flex Consumption charges for on-demand execution; no always-ready instances are configured
 
 ## Next Steps
 

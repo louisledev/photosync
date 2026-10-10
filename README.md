@@ -126,7 +126,7 @@ graph TB
 - **Independent Scaling** - Each app scales based on its workload
 - **Better Security** - Each app only has credentials for its source account
 - **Easier Monitoring** - Separate logs and metrics per source
-- **Same Cost** - Consumption Plan charges per execution, not per app
+- **On-demand Billing** - Flex Consumption scales each app independently with no always-ready instances
 
 **Key Components:**
 - **Function Apps**: Run identical code, configured for different source accounts
@@ -140,7 +140,7 @@ See [PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md) for details on the architect
 ## Prerequisites
 
 1. **Azure Subscription** - [Create free account](https://azure.microsoft.com/free/)
-2. **.NET 8.0 SDK** - [Download here](https://dotnet.microsoft.com/download)
+2. **.NET 10 SDK** - [Download here](https://dotnet.microsoft.com/download)
 3. **Azure Functions Core Tools** - Install via:
    ```bash
    npm install -g azure-functions-core-tools@4
@@ -515,9 +515,9 @@ The function automatically logs to Application Insights:
 
 ## Performance Limitations
 
-### 10-Minute Timeout on Consumption Plan
+### 10-Minute Execution Budget on Flex Consumption
 
-The project uses Azure Functions **Consumption Plan (Y1)** which has a **maximum execution timeout of 10 minutes**. This is a hard limit that cannot be increased on this tier.
+The project uses .NET 10 on Linux **Flex Consumption (FC1)**. The application keeps a 10-minute `functionTimeout` in `src/host.json` to bound each sync run. This is an application setting, not the Flex Consumption maximum. Existing Y1 apps require migration before deploying .NET 10; see the [deployment migration guide](.github/DEPLOYMENT.md#net-10-and-flex-consumption-migration).
 
 **When this becomes a problem:**
 - **Initial sync with many files**: If you have thousands of photos (e.g., 7,000+ files), scanning the source folder alone can take 60-80 seconds
@@ -541,87 +541,14 @@ With hourly execution (`"0 0 * * * *"`), processing 20 files/hour = 480 files/da
 - Run hourly to gradually sync all files
 - After initial sync completes, you can increase the value or remove the limit
 
-### Solution: Upgrade to Premium or Dedicated Plan
+### Longer executions
 
-If you need longer execution times, upgrade to a higher-tier plan:
-
-#### **Premium Plan (EP1)** - Recommended for most users
-- **Timeout**: Up to 60 minutes (or unlimited with proper configuration)
-- **Cost**: ~$150-200/month per Function App
-- **Benefits**:
-  - VNet integration for secure connectivity
-  - Pre-warmed instances (no cold start)
-  - Unlimited execution duration (with AlwaysOn)
-  - More CPU and memory
-- **Best for**: Users with 10,000+ files or large video files
-
-#### **Dedicated Plan (App Service Plan S1)**
-- **Timeout**: Unlimited (no time restrictions)
-- **Cost**: ~$70/month per Function App
-- **Benefits**:
-  - Predictable pricing
-  - AlwaysOn enabled by default
-  - Shared with other App Service apps to reduce cost
-- **Best for**: Predictable workload, already using App Service Plan
-
-#### **How to upgrade:**
-
-1. **Via Azure Portal:**
-   - Go to Function App → Settings → Scale up (App Service Plan)
-   - Select Premium Plan (EP1) or Dedicated Plan (S1)
-   - Update the `functionTimeout` in [src/host.json](src/host.json):
-     ```json
-     {
-       "functionTimeout": "01:00:00"  // 60 minutes (or "-1" for unlimited on Dedicated)
-     }
-     ```
-
-2. **Via Terraform** (recommended):
-   - Update `terraform/modules/function-app/main.tf`:
-     ```hcl
-     # Change from "Y1" (Consumption) to "EP1" (Premium)
-     resource "azurerm_service_plan" "function_plan" {
-       name                = "${var.function_app_name}-plan"
-       resource_group_name = var.resource_group_name
-       location            = var.location
-       os_type             = "Linux"
-       sku_name            = "EP1"  # Changed from "Y1"
-     }
-     ```
-   - Run `terraform apply` to update both Function Apps
-   - Update [src/host.json](src/host.json) and redeploy code
-
-**Note:** Premium/Dedicated plans cost significantly more (~50-100x) than Consumption Plan. Only upgrade if you truly need longer execution times.
+If needed, increase `functionTimeout` in [src/host.json](src/host.json) and redeploy. Keep `MaxFilesPerRun` bounded to handle retries and interrupted runs. A move to Premium or Dedicated hosting requires a separate infrastructure migration; changing the Flex plan SKU alone is insufficient.
 
 ## Cost Estimation
 
-Based on moderate usage (500 photos/month with two Function Apps):
+Terraform configures two Flex Consumption apps with 2,048 MB instances and no always-ready instances. Costs depend on execution duration, memory, storage, data transfer, and Application Insights ingestion. Legacy Y1 estimates do not apply; use the [Azure Functions pricing page](https://azure.microsoft.com/pricing/details/functions/) for your region and workload.
 
-### Consumption Plan (Current)
-- **Azure Functions Consumption Plan (2 apps)**: ~$0.40/month
-- **Azure Storage (2 storage accounts)**: ~$0.10/month
-- **Data Transfer**: ~$1-2/month (depends on photo sizes)
-- **Application Insights**: Free tier should suffice
-
-**Total: ~$2.50-3/month**
-
-Note: The Consumption Plan charges per execution, so running two Function Apps costs nearly the same as one.
-
-### Premium Plan (EP1) - If You Need Longer Timeout
-- **Azure Functions Premium Plan (2 apps)**: ~$300-400/month
-- **Azure Storage (2 storage accounts)**: ~$0.10/month
-- **Data Transfer**: ~$1-2/month
-- **Application Insights**: Free tier should suffice
-
-**Total: ~$300-400/month**
-
-### Dedicated Plan (S1) - Alternative Option
-- **Azure Functions Dedicated Plan (2 apps)**: ~$140/month
-- **Azure Storage (2 storage accounts)**: ~$0.10/month
-- **Data Transfer**: ~$1-2/month
-- **Application Insights**: Free tier should suffice
-
-**Total: ~$140-145/month**
 
 ## Extending the Solution
 

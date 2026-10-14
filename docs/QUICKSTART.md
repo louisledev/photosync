@@ -5,7 +5,7 @@ This guide will get you up and running with **personal Microsoft accounts** (out
 ## Prerequisites Checklist
 
 - [ ] Azure subscription ([Get free trial](https://azure.microsoft.com/free/))
-- [ ] .NET 8.0 SDK installed
+- [ ] .NET 10 SDK installed
 - [ ] Azure Functions Core Tools installed
 - [ ] Terraform installed
 - [ ] Azure CLI installed

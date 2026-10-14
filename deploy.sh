@@ -29,7 +29,7 @@ dotnet publish --configuration Release
 if [[ $? -ne 0 ]]; then
     error "ERROR: Build/publish failed!"
     error "Troubleshooting tips:"
-    error "  - Check that .NET 8.0 SDK is installed (run: dotnet --version)"
+    error "  - Check that .NET 10 SDK is installed (run: dotnet --version)"
     error "  - Review the build output above for specific errors"
     error "  - Ensure you are running this script from the project root directory"
     exit 1

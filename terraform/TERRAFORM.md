@@ -62,8 +62,8 @@ terraform plan
 Review the resources that will be created:
 - Resource Group
 - Storage Account
-- App Service Plan (Consumption)
-- Linux Function App
+- App Service Plan (Flex Consumption)
+- Linux Flex Consumption Function App
 
 ### 3. Apply the Configuration
 
@@ -151,7 +151,7 @@ The following app settings are automatically configured:
 ### Cost Optimization
 
 The configuration uses:
-- **Consumption Plan (Y1)**: Pay only for execution time
+- **Flex Consumption Plan (FC1)**: Pay only for execution time
 - **Standard_LRS Storage**: Locally redundant storage for cost efficiency
 
 ## Troubleshooting

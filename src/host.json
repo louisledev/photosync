@@ -14,7 +14,7 @@
       "Microsoft.Hosting.Lifetime": "Information"
     }
   },
-  "_comment_functionTimeout": "10 minutes is the maximum allowed for Azure Functions Consumption Plan (Y1). See README Performance Limitations section for details.",
+  "_comment_functionTimeout": "PhotoSync keeps a 10-minute execution budget on Flex Consumption. Use MaxFilesPerRun to bound each sync batch.",
   "functionTimeout": "00:10:00",
   "extensions": {
     "http": {

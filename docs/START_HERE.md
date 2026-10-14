@@ -55,7 +55,7 @@ Welcome! This project automates syncing family photos from multiple OneDrive acc
 Before you start, make sure you have:
 
 1. **Azure subscription** ([Free trial available](https://azure.microsoft.com/free/))
-2. **.NET 8.0 SDK** installed
+2. **.NET 10 SDK** installed
 3. **Terraform** ([Download here](https://www.terraform.io/downloads))
 4. **Azure CLI** ([Download here](https://docs.microsoft.com/cli/azure/install-azure-cli))
 5. Access to the OneDrive accounts you want to sync
